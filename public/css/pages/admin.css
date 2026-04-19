@@ -1,0 +1,302 @@
+body {
+  background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+}
+
+.admin-layout {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.admin-sidebar {
+  background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
+  color: white;
+  padding: 2rem 1.5rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.admin-sidebar h2 {
+  color: white;
+  margin-bottom: 2rem;
+  font-size: 1.5rem;
+  letter-spacing: 0.5px;
+}
+
+.nav-links {
+  list-style: none;
+}
+
+.nav-links li {
+  margin-bottom: 0.5rem;
+}
+
+.nav-links a {
+  color: #a0aec0;
+  font-weight: 500;
+  display: block;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.nav-links a:hover, .nav-links a.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  transform: translateX(4px);
+}
+
+/* Main Content */
+.admin-content {
+  padding: 2rem 3rem;
+  overflow-y: auto;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.5rem;
+}
+
+.admin-header h1 {
+  font-size: 2.2rem;
+  background: linear-gradient(135deg, var(--text-main) 0%, var(--primary-dark) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.metric-card h3 {
+  font-size: 1rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.metric-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  font-family: 'Outfit', sans-serif;
+}
+
+/* Table Section */
+.data-section {
+  grid-column: span 3;
+}
+
+.table-glass {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 1rem;
+}
+
+.table-glass th {
+  text-align: left;
+  padding: 1rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  border-bottom: 2px solid var(--glass-border);
+}
+
+.table-glass td {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  font-size: 0.95rem;
+}
+
+.table-glass tr:last-child td {
+  border-bottom: none;
+}
+
+.table-glass tbody tr {
+  transition: background-color 0.2s;
+}
+
+.table-glass tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Tabs System */
+.tabs-header {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid var(--glass-border);
+  padding-bottom: 0.5rem;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.tab-btn.active {
+  color: var(--primary-color);
+}
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -0.65rem;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--primary-color);
+  border-radius: 3px;
+}
+
+.tab-content {
+  display: none;
+  animation: fadeIn 0.4s ease forwards;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  background: rgba(255, 255, 255, 0.8);
+  transition: border-color 0.2s;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  background: #fff;
+}
+
+.action-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+/* ═══ SP Card Styles ═══ */
+.sp-card {
+  margin-bottom: 1.5rem;
+}
+
+.sp-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.sp-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.sp-header code {
+  font-size: 0.8rem;
+  background: rgba(13, 142, 255, 0.08);
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  color: var(--primary-dark);
+  font-family: 'Courier New', monospace;
+}
+
+.sp-badge {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: white;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.3rem 0.7rem;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.sp-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.sp-form .sp-inputs {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.sp-form .sp-inputs .form-group {
+  min-width: 150px;
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.sp-form .btn-primary {
+  white-space: nowrap;
+  height: fit-content;
+}
+
+/* Result Area */
+.sp-result {
+  margin-top: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+  border-radius: 8px;
+}
+
+.sp-result:empty {
+  display: none;
+}
+
+.sp-result .result-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 1.5rem;
+  font-style: italic;
+}
+
+.sp-result .result-error {
+  text-align: center;
+  color: var(--accent-color);
+  padding: 1rem;
+  font-weight: 500;
+}

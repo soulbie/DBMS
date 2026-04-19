@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skyline Tours | Premium Experiences</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <style>
+        .hero {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: linear-gradient(rgba(13, 142, 255, 0.05), rgba(13, 142, 255, 0.1));
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+            transition: opacity 0.5s ease;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(13,142,255,0.08) 0%, rgba(255,255,255,0) 50%);
+            animation: rotate 20s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .hero h1 {
+            font-size: 4.5rem;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--text-main) 0%, var(--primary-dark) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            max-width: 800px;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            margin-bottom: 2.5rem;
+            max-width: 600px;
+            font-weight: 500;
+        }
+
+        header.top-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 1.5rem 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.8);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .top-nav h2 {
+            font-size: 1.5rem;
+            color: var(--primary-dark);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-main);
+            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+        }
+        
+        .nav-links a:hover {
+            color: var(--primary-color);
+        }
+        
+        #tours-section {
+            display: none;
+            padding-top: 100px; /* Offset for fixed header */
+            min-height: 100vh;
+        }
+
+        .tours-header {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .badge-seats {
+            background: rgba(13, 142, 255, 0.1);
+            color: var(--primary-dark);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <header class="top-nav">
+        <h2>Skyline.</h2>
+        <nav class="nav-links">
+            <a onclick="showSection('hero')">Home</a>
+            <a onclick="loadTours()">Destinations</a>
+            <a href="/admin/dashboard" style="color: var(--accent-color);">Admin Portal</a>
+            <div id="auth-buttons" class="nav-auth">
+                <a onclick="openModal('login-modal')" class="btn-primary" style="padding: 0.5rem 1rem; color: white;">Login</a>
+                <a onclick="openModal('register-modal')" style="color: var(--text-main);">Sign Up</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="hero" class="hero animate-fade-in">
+            <h1>Discover the World's Best Kept Secrets</h1>
+            <p>Book premium tours, seamlessly designed for the modern explorer. From quiet mountains to electric cities, your journey starts here.</p>
+            <button class="btn-primary" onclick="loadTours()" style="padding: 1rem 2.5rem; font-size: 1.1rem; border-radius: 50px;">
+                Explore Tours
+            </button>
+        </section>
+
+        <section id="tours-section" class="animate-fade-in">
+            <div class="tours-header">
+                <h2>Our Best Destinations</h2>
+                <p style="color: var(--text-muted)">Live your best life.</p>
+            </div>
+            <div id="tours-container" class="tours-grid">
+                <!-- Tours injected via JS -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Welcome Back</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Please log in to book tours.</p>
+            <form id="login-form">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%">Login</button>
+            </form>
+            <p style="margin-top: 1rem; text-align: center; font-size: 0.9rem;">
+                No account? <a href="#" onclick="closeModal('login-modal'); openModal('register-modal')">Sign up</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="register-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Create an Account</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Join us to explore the world.</p>
+            <form id="register-form">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" name="fullName" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="text" name="phone" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%">Sign Up</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Booking Modal -->
+    <div id="booking-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="book-tour-title">Book Tour</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Secure your spot now.</p>
+            <form id="booking-form">
+                <input type="hidden" id="book-tour-id" name="tourId">
+                <div class="form-group">
+                    <label>Quantity</label>
+                    <input type="number" name="quantity" id="book-quantity" class="form-control" min="1" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label>Payment Method</label>
+                    <select name="paymentMethod" class="form-control" required>
+                        <option value="CASH">Cash (Pay at Office)</option>
+                        <option value="CREDIT_CARD">Credit Card</option>
+                        <option value="BANK_TRANSFER">Bank Transfer</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Note (Optional)</label>
+                    <textarea name="note" class="form-control" rows="3"></textarea>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn-primary" style="flex: 1">Confirm Booking</button>
+                    <button type="button" onclick="closeModal('booking-modal')" class="btn-primary" style="flex: 1; background: #e2e8f0; color: #333;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Utilities
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        
+        // Setup close on outside click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', e => {
+                if(e.target === overlay) closeModal(overlay.id);
+            });
+        });
+
+        function showSection(id) {
+            document.getElementById('hero').style.display = id === 'hero' ? 'flex' : 'none';
+            document.getElementById('tours-section').style.display = id === 'tours-section' ? 'block' : 'none';
+            window.scrollTo(0,0);
+        }
+
+        // Auth Logic
+        let currentUser = JSON.parse(localStorage.getItem('user')) || null;
+
+        function updateAuthUI() {
+            const authDiv = document.getElementById('auth-buttons');
+            if (currentUser) {
+                authDiv.innerHTML = `
+                    <span style="font-weight: 600">Hi, ${currentUser.FullName}</span>
+                    <a onclick="logout()" style="color: var(--accent-color); cursor: pointer">Logout</a>
+                `;
+            } else {
+                authDiv.innerHTML = `
+                    <a onclick="openModal('login-modal')" class="btn-primary" style="padding: 0.5rem 1rem; color: white;">Login</a>
+                    <a onclick="openModal('register-modal')" style="color: var(--text-main); cursor: pointer;">Sign Up</a>
+                `;
+            }
+        }
+        updateAuthUI();
+
+        function logout() {
+            localStorage.removeItem('user');
+            currentUser = null;
+            updateAuthUI();
+        }
+
+        // Forms Handling
+        document.getElementById('login-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                const json = await res.json();
+                if (json.success) {
+                    alert('Logged in successfully!');
+                    currentUser = json.data;
+                    localStorage.setItem('user', JSON.stringify(currentUser));
+                    updateAuthUI();
+                    closeModal('login-modal');
+                } else {
+                    alert(json.message);
+                }
+            } catch (err) { alert('Error logging in'); }
+        };
+
+        document.getElementById('register-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                const json = await res.json();
+                if (json.success) {
+                    alert('Registered successfully! Now logged in.');
+                    currentUser = json.data;
+                    localStorage.setItem('user', JSON.stringify(currentUser));
+                    updateAuthUI();
+                    closeModal('register-modal');
+                } else {
+                    alert(json.message);
+                }
+            } catch (err) { alert('Error registering'); }
+        };
+
+        // Tours Handling
+        async function loadTours() {
+            showSection('tours-section');
+            try {
+                const res = await fetch('/api/tours');
+                const json = await res.json();
+                if(json.success) renderTours(json.data);
+            } catch (err) { console.error('Failed to load tours', err); }
+        }
+
+        function renderTours(tours) {
+            const container = document.getElementById('tours-container');
+            container.innerHTML = '';
+            tours.forEach(t => {
+                const imgSource = t.TourThumbnail || 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&q=80&w=1000';
+                
+                // Format decimal to number if needed
+                const price = typeof t.CostPerPerson === 'string' ? parseFloat(t.CostPerPerson) : t.CostPerPerson;
+                const formattedPrice = price ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price) : 'Contact';
+                
+                const card = document.createElement('div');
+                card.className = 'glass-card tour-card';
+                card.innerHTML = `
+                    <div class="tour-image" style="background-image: url('${imgSource}')"></div>
+                    <div class="tour-info" style="flex: 1; display: flex; flex-direction: column;">
+                        <span style="color: var(--accent-color); font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">${t.CategoryName || 'Tour'}</span>
+                        <h3>${t.TourName || t.Title}</h3>
+                        <div class="tour-meta" style="margin-top: 0.5rem">
+                            <span>📅 ${t.DepartureDate ? new Date(t.DepartureDate).toLocaleDateString('vi-VN') : 'TBA'}</span>
+                            <span class="badge-seats">${t.RemainingSeats} seats left</span>
+                        </div>
+                        <div class="tour-price" style="margin-top: auto; padding-top: 1rem;">${formattedPrice}</div>
+                        <button class="btn-primary" onclick="openBooking(${t.TourID}, '${(t.TourName || t.Title).replace(/'/g, "\\'")}', ${t.RemainingSeats})" style="width: 100%; text-align: center;">Book Now</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openBooking(tourId, tourName, remainingSeats) {
+            if (!currentUser) {
+                alert('Vui lòng đăng nhập để đặt Tour!');
+                openModal('login-modal');
+                return;
+            }
+            if (remainingSeats <= 0) {
+                alert('Tour này đã hết chỗ!');
+                return;
+            }
+            document.getElementById('book-tour-id').value = tourId;
+            document.getElementById('book-quantity').max = remainingSeats;
+            document.getElementById('book-tour-title').innerText = "Book: " + tourName;
+            openModal('booking-modal');
+        }
+
+        document.getElementById('booking-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            data.userId = currentUser.UserID; // Pass logged in user
+
+            try {
+                const res = await fetch('/api/bookings', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                const json = await res.json();
+                if (json.success) {
+                    alert('Đặt Tour thành công!');
+                    closeModal('booking-modal');
+                    loadTours(); // Refresh tours to update seats
+                } else {
+                    alert(json.message);
+                }
+            } catch (err) { alert('Error booking tour'); }
+        };
+    </script>
+</body>
+</html>

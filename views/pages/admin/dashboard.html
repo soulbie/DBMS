@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Skyline Tours</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/pages/admin.css">
+    <link rel="stylesheet" href="/css/components/toast.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <h2>Skyline Tours</h2>
+            <ul class="nav-links">
+                <li><a href="#" class="active">Management Hub</a></li>
+                <li><a href="/">← Go to Site</a></li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="admin-content">
+            <header class="admin-header animate-fade-in">
+                <h1>Command Center</h1>
+            </header>
+
+            <!-- Tabs Navigation -->
+            <div class="tabs-header animate-fade-in" style="animation-delay: 0.1s;">
+                <button class="tab-btn active" onclick="switchTab('analytics')">Analytics (SP)</button>
+                <button class="tab-btn" onclick="switchTab('tours')">Tours & Categories</button>
+                <button class="tab-btn" onclick="switchTab('bookings')">Orders</button>
+                <button class="tab-btn" onclick="switchTab('admin')">System</button>
+                <button class="tab-btn" onclick="switchTab('audit')">Audit Logs</button>
+            </div>
+
+            <!-- ═══════════════════════════════════════════ -->
+            <!-- Tab: Analytics — ALL 10 Stored Procedures  -->
+            <!-- ═══════════════════════════════════════════ -->
+            <div id="tab-analytics" class="tab-content active">
+
+                <!-- SP 1: sp_GetRevenueByDateRange -->
+                <div class="glass-card sp-card animate-fade-in" style="animation-delay:0.1s">
+                    <div class="sp-header">
+                        <span class="sp-badge">SP 1</span>
+                        <h3>Revenue by Date Range</h3>
+                        <code>sp_GetRevenueByDateRange(p_StartDate, p_EndDate)</code>
+                    </div>
+                    <form id="spRevenueDate" class="sp-form">
+                        <div class="sp-inputs">
+                            <div class="form-group"><label>Start Date</label><input type="date" class="form-control" name="startDate" value="2026-01-01" required></div>
+                            <div class="form-group"><label>End Date</label><input type="date" class="form-control" name="endDate" value="2026-12-31" required></div>
+                        </div>
+                        <button type="submit" class="btn-primary">Execute</button>
+                    </form>
+                    <div class="sp-result" id="resultRevenueDate"></div>
+                </div>
+
+                <!-- SP 2: sp_GetRevenueByCategory -->
+                <div class="glass-card sp-card animate-fade-in" style="animation-delay:0.15s">
+                    <div class="sp-header">
+                        <span class="sp-badge">SP 2</span>
+                        <h3>Revenue by Category</h3>
+                        <code>sp_GetRevenueByCategory(p_StartDate, p_EndDate, p_CategoryName)</code>
+                    </div>
+                    <form id="spRevenueCategory" class="sp-form">
+                        <div class="sp-inputs">
+                            <div class="form-group"><label>Start Date</label><input type="date" class="form-control" name="startDate" value="2026-01-01" required></div>
+                            <div class="form-group"><label>End Date</label><input type="date" class="form-control" name="endDate" value="2026-12-31" required></div>
+                            <div class="form-group"><label>Category Name (optional)</label><input type="text" class="form-control" name="categoryName" placeholder="e.g. Adventure"></div>
+                        </div>
+                        <button type="submit" class="btn-primary">Execute</button>
+                    </form>
+                    <div class="sp-result" id="resultRevenueCategory"></div>
+                </div>
+
+                <!-- SP 3: sp_RevenueActualVsExpected -->
+                <div class="glass-card sp-card animate-fade-in" style="animation-delay:0.2s">
+                    <div class="sp-header">
+                        <span class="sp-badge">SP 3</span>
+                        <h3>Revenue Actual vs Expected</h3>
+                        <code>sp_RevenueActualVsExpected(p_StartDate, p_EndDate)</code>
+                    </div>
+                    <form id="spRevenueActual" class="sp-form">
+                        <div class="sp-inputs">
+                            <div class="form-group"><label>Start Date</label><input type="date" class="form-control" name="startDate" value="2026-01-01" required></div>
+                            <div class="form-group"><label>End Date</label><input type="date" class="form-control" name="endDate" value="2026-12-31" required></div>
+                        </div>
+                        <button type="submit" class="btn-primary">Execute</button>
+                    </form>
+                    <div class="sp-result" id="resultRevenueActual"></div>
+                </div>
+
+                <!-- SP 4: sp_GetTopBestSellingToursByMonth -->
+                <div class="glass-card sp-card animate-fade-in" style="animation-delay:0.25s">
+                    <div class="sp-header">
+                        <span class="sp-badge">SP 4</span>
+                        <h3>Top Best Selling Tours by Month</h3>
+                        <code>sp_GetTopBestSellingToursByMonth(p_Year, p_Month, p_Limit)</code>
+                    </div>
+                    <form id="spBestSelling" class="sp-form">
+                        <div class="sp-inputs">
+                            <div class="form-group"><label>Year</label><input type="number" class="form-control" name="year" value="2026" required></div>
+                            <div class="form-group"><label>Month</label><input type="number" class="form-control" name="month" value="4" min="1" max="12" required></div>
+                            <div class="form-group"><label>Limit</label><input type="number" class="form-control" name="limit" value="10" required></div>
+                        </div>
+                        <button type="submit" class="btn-primary">Execute</button>
+                    </form>
+                    <div class="sp-result" id="resultBestSelling"></div>
+                </div>
+
+                <!-- SP 5: sp_GetTourOccupancyByName -->
+                <div class="glass-card sp-card animate-fade-in" style="animation-delay:0.3s">
+                    <div class="sp-header">
+                        <span class="sp-badge">SP 5</span>
+                        <h3>Tour Occupancy by Name</h3>
+                        <code>sp_GetTourOccupancyByName(p_TourTitle)</code>
+                    </div>
+                    <form id="spOccupancy" class="sp-form">
+                        <div class="sp-inputs">
+                            <div class="form-group"><label>Tour Title (search)</label><input type="text" class="form-control" name="tourTitle" placeholder="e.g. Đà Lạt"></div>
+                        </div>
+                        <button type="submit" class="btn-primary">Execute</button>
+                    </form>
+                    <div class="sp-result" id="resultOccupancy"></div>
+                </div>
+
+                <!-- SP 6: sp_TopCancelledTours -->
+                <div class="glass-card sp-card animate-fade-in" style="animation-delay:0.35s">
+                    <div class="sp-header">
+                        <span class="sp-badge">SP 6</span>
+                        <h3>Top Cancelled Tours</h3>
+                        <code>sp_TopCancelledTours(p_Limit)</code>
+                    </div>
+                    <form id="spCancelled" class="sp-form">
+                        <div class="sp-inputs">
+                            <div class="form-group"><label>Limit</label><input type="number" class="form-control" name="limit" value="5" required></div>
+                        </div>
+                        <button type="submit" class="btn-primary">Execute</button>
+                    </form>
+                    <div class="sp-result" id="resultCancelled"></div>
+                </div>
+
+                <!-- SP 7: sp_HighInventoryTours -->
+                <div class="glass-card sp-card animate-fade-in" style="animation-delay:0.4s">
+                    <div class="sp-header">
+                        <span class="sp-badge">SP 7</span>
+                        <h3>High Inventory Tours (Unsold)</h3>
+                        <code>sp_HighInventoryTours(p_DaysAhead)</code>
+                    </div>
+                    <form id="spHighInventory" class="sp-form">
+                        <div class="sp-inputs">
+                            <div class="form-group"><label>Days Ahead</label><input type="number" class="form-control" name="daysAhead" value="14" required></div>
+                        </div>
+                        <button type="submit" class="btn-primary">Execute</button>
+                    </form>
+                    <div class="sp-result" id="resultHighInventory"></div>
+                </div>
+
+                <!-- SP 8: GetTopVIPCustomers -->
+                <div class="glass-card sp-card animate-fade-in" style="animation-delay:0.45s">
+                    <div class="sp-header">
+                        <span class="sp-badge">SP 8</span>
+                        <h3>Top VIP Customers</h3>
+                        <code>GetTopVIPCustomers(p_limit, p_mode)</code>
+                    </div>
+                    <form id="spVIP" class="sp-form">
+                        <div class="sp-inputs">
+                            <div class="form-group"><label>Limit</label><input type="number" class="form-control" name="limit" value="10" required></div>
+                            <div class="form-group">
+                                <label>Mode</label>
+                                <select class="form-control" name="mode">
+                                    <option value="1">1 — By Total Spent</option>
+                                    <option value="2">2 — By Total Orders</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary">Execute</button>
+                    </form>
+                    <div class="sp-result" id="resultVIP"></div>
+                </div>
+
+                <!-- SP 9: GetCustomerDemographicStats -->
+                <div class="glass-card sp-card animate-fade-in" style="animation-delay:0.5s">
+                    <div class="sp-header">
+                        <span class="sp-badge">SP 9</span>
+                        <h3>Customer Demographics</h3>
+                        <code>GetCustomerDemographicStats(p_type, p_order_status)</code>
+                    </div>
+                    <form id="spDemographics" class="sp-form">
+                        <div class="sp-inputs">
+                            <div class="form-group">
+                                <label>Type</label>
+                                <select class="form-control" name="type">
+                                    <option value="AGE">AGE — Age Groups</option>
+                                    <option value="LOCATION">LOCATION — By Address</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Order Status</label>
+                                <select class="form-control" name="orderStatus">
+                                    <option value="2">2 — Completed</option>
+                                    <option value="1">1 — Pending</option>
+                                    <option value="0">0 — Cancelled</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary">Execute</button>
+                    </form>
+                    <div class="sp-result" id="resultDemographics"></div>
+                </div>
+
+                <!-- SP 10: GetCustomerRetentionRate -->
+                <div class="glass-card sp-card animate-fade-in" style="animation-delay:0.55s">
+                    <div class="sp-header">
+                        <span class="sp-badge">SP 10</span>
+                        <h3>Customer Retention Rate</h3>
+                        <code>GetCustomerRetentionRate(p_order_status)</code>
+                    </div>
+                    <form id="spRetention" class="sp-form">
+                        <div class="sp-inputs">
+                            <div class="form-group">
+                                <label>Order Status</label>
+                                <select class="form-control" name="orderStatus">
+                                    <option value="2">2 — Completed</option>
+                                    <option value="1">1 — Pending</option>
+                                    <option value="0">0 — Cancelled</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary">Execute</button>
+                    </form>
+                    <div class="sp-result" id="resultRetention"></div>
+                </div>
+
+            </div><!-- /tab-analytics -->
+
+            <!-- ═══════════════════════════════ -->
+            <!-- Tab: Tours & Categories         -->
+            <!-- ═══════════════════════════════ -->
+            <div id="tab-tours" class="tab-content">
+                <div class="form-grid-2">
+                    <div class="glass-card">
+                        <h3>Create New Tour</h3>
+                        <form id="formCreateTour" class="action-form" style="margin-top: 1rem;">
+                            <div class="form-group"><label>Title</label><input type="text" class="form-control" name="title" required></div>
+                            <div class="form-grid-2">
+                                <div class="form-group"><label>Cost</label><input type="number" class="form-control" name="cost" required></div>
+                                <div class="form-group"><label>Max Participants</label><input type="number" class="form-control" name="maxParticipants" required></div>
+                            </div>
+                            <div class="form-grid-2">
+                                <div class="form-group"><label>Vehicle</label><input type="text" class="form-control" name="vehicle"></div>
+                                <div class="form-group"><label>Category ID</label><input type="number" class="form-control" name="categoryId" required></div>
+                            </div>
+                            <div class="form-group"><label>Image URL</label><input type="text" class="form-control" name="imageSource"></div>
+                            <button type="submit" class="btn-primary">Create Tour</button>
+                        </form>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        <div class="glass-card">
+                            <h3>Safe Delete Tour</h3>
+                            <form id="formDeleteTour" style="margin-top: 1rem; display: flex; gap: 1rem;">
+                                <input type="number" class="form-control" name="tourId" placeholder="Tour ID" required>
+                                <button type="submit" class="btn-primary" style="background: var(--accent-color);">Delete</button>
+                            </form>
+                        </div>
+                        <div class="glass-card">
+                            <h3>Category Discount</h3>
+                            <form id="formDiscount" class="action-form" style="margin-top: 1rem;">
+                                <div class="form-grid-2">
+                                    <div class="form-group"><label>Category ID</label><input type="number" class="form-control" name="categoryId" required></div>
+                                    <div class="form-group"><label>Discount (%)</label><input type="number" step="0.1" class="form-control" name="percent" required></div>
+                                </div>
+                                <button type="submit" class="btn-primary">Apply Bulk Discount</button>
+                            </form>
+                        </div>
+                        <div class="glass-card">
+                            <h3>Merge Categories</h3>
+                            <form id="formMerge" class="action-form" style="margin-top: 1rem;">
+                                <div class="form-grid-2">
+                                    <div class="form-group"><label>Old Category ID</label><input type="number" class="form-control" name="oldCategoryId" required></div>
+                                    <div class="form-group"><label>New Category ID</label><input type="number" class="form-control" name="newCategoryId" required></div>
+                                </div>
+                                <button type="submit" class="btn-primary">Merge</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════ -->
+            <!-- Tab: Bookings               -->
+            <!-- ═══════════════════════════ -->
+            <div id="tab-bookings" class="tab-content">
+                <div class="form-grid-2">
+                    <div class="glass-card">
+                        <h3>Update Order Status</h3>
+                        <form id="formUpdateStatus" class="action-form" style="margin-top: 1rem;">
+                            <div class="form-group"><label>Order ID</label><input type="number" class="form-control" name="orderId" required></div>
+                            <div class="form-group">
+                                <label>New Status</label>
+                                <select class="form-control" name="status">
+                                    <option value="1">1 — Pending</option>
+                                    <option value="2">2 — Completed</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn-primary">Update Status</button>
+                        </form>
+                    </div>
+                    <div class="glass-card">
+                        <h3>Cancel Order</h3>
+                        <form id="formCancelOrder" class="action-form" style="margin-top: 1rem;">
+                            <div class="form-group"><label>Order ID</label><input type="number" class="form-control" name="orderId" required></div>
+                            <div class="form-group"><label>Reason</label><input type="text" class="form-control" name="reason" required></div>
+                            <button type="submit" class="btn-primary" style="background: var(--accent-color);">Submit Cancellation</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════ -->
+            <!-- Tab: Admin                  -->
+            <!-- ═══════════════════════════ -->
+            <div id="tab-admin" class="tab-content">
+                <div class="glass-card" style="max-width: 500px;">
+                    <h3>Provision Admin Account</h3>
+                    <form id="formCreateAdmin" class="action-form" style="margin-top: 1rem;">
+                        <div class="form-group"><label>Full Name</label><input type="text" class="form-control" name="fullName" required></div>
+                        <div class="form-group"><label>Email</label><input type="email" class="form-control" name="email" required></div>
+                        <div class="form-group"><label>Password</label><input type="password" class="form-control" name="password" required></div>
+                        <div class="form-group"><label>Role ID</label><input type="number" class="form-control" name="roleId" required></div>
+                        <button type="submit" class="btn-primary">Grant Access</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════ -->
+            <!-- Tab: Audit Logs             -->
+            <!-- ═══════════════════════════ -->
+            <div id="tab-audit" class="tab-content">
+                <div class="glass-card data-section animate-fade-in">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2>System Audit Logs</h2>
+                        <button class="btn-primary" onclick="fetchAndRenderAuditLogs()" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Refresh Logs</button>
+                    </div>
+                    
+                    <table class="table-glass" id="auditLogsTable" style="margin-top: 1.5rem;">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Admin ID</th>
+                                <th>Action</th>
+                                <th>Target Table</th>
+                                <th>Target ID</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditLogsBody">
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: var(--text-muted);">Fetching logs...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="/js/components/toast.js"></script>
+    <script src="/js/api/_base.js"></script>
+    <script src="/js/pages/admin/dashboard.js"></script>
+    <script src="/js/pages/admin/actions.js"></script>
+</body>
+</html>
