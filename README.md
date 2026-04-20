@@ -1,86 +1,373 @@
-# Cẩm nang Hoạt động & Kiến trúc Tích hợp Database Dự án Bán Tour
+# Skyline Tours — Hệ thống Đặt Tour Du lịch
 
-Tài liệu này mô tả chi tiết luồng xử lý của hệ thống (Flow System) cùng với cách mà các thành phần cốt lõi của hệ thống Cơ sở dữ liệu (Database Objects: Trigger, Stored Procedure, Transaction, View) được áp dụng chặt chẽ vào mã nguồn Node.js/Express của dự án.
-
----
-
-## 1. Luồng hoạt động tổng quan (Request & Data Flow)
-
-Hệ thống hoạt động theo mô hình Monolith MVC với kiến trúc **"Database-Centric"** (Kiến trúc lấy Cơ sở dữ liệu làm trọng tâm). Business Logic phần lớn được đẩy xuống CSDL để đảm bảo tính nhất quán và bảo mật.
-
-**Luồng đi của một tính năng (Ví dụ: Đặt Tour):**
-
-1. **Frontend (Browser):** Người dùng bấm "Đặt Tour", Frontend sử dụng Vanilla JS gọi API `fetch POST /api/bookings`.
-2. **Controller (`src/controllers/`):** Nhận request, lấy tham số và gọi đến tầng Service.
-3. **Service (`src/services/`):** Xử lý hoặc kiểm tra logic nghiệp vụ cơ bản (VD: tính hợp lệ dữ liệu) rồi gọi tầng Model.
-4. **Model (`src/models/`):** Chứa Data Access Logic. **ĐẶC BIỆT:** Model KHÔNG dùng Raw SQL `INSERT`, `UPDATE`, hay `DELETE` để thay đổi dữ liệu một cách trực tiếp.
-   - Thay vào đó, Model tiến hành việc ghi dữ liệu bằng cách gọi: `CALL sp_CreateBooking(...)`.
-   - Nếu để đọc dữ liệu báo cáo, nó thực hiện: `SELECT * FROM vw_...`.
-5. **Database (MySQL):**
-   - **Stored Procedure (SP)** tiếp nhận `CALL`.
-   - SP bắt đầu một **Transaction**.
-   - Các hành động trong quá trình chạy sẽ ngầm kích hoạt các **Trigger** (VD: Trigger check xem còn đủ vé không, Trigger lưu Audit Log).
-   - SP tính toán xong sẽ `COMMIT` hoặc tự động `ROLLBACK` nếu Trigger báo lỗi.
-6. Kết quả trả ngược về Model -> Service -> Controller -> Frontend (Hiển thị Toast / Chuyển hướng).
+> Ứng dụng web đặt tour du lịch full-stack được xây dựng bằng **Node.js / Express** và kiến trúc **"Database-Centric"** với MySQL, minh họa việc áp dụng thực tế của View, Stored Procedure, Transaction, Trigger và Event trong một hệ thống thương mại.
 
 ---
 
-## 2. Chi tiết cách áp dụng các Database Objects vào dự án
+## Mục lục
 
-Hệ thống xoay quanh 4 thành thần chính trong SQL để thực thi tính toàn vẹn và tối ưu hóa hệ thống Backend:
-
-### 2.1. Views (Bảng ảo - Computed Read Models)
-
-**Vai trò:** Giấu đi sự phức tạp của các câu `JOIN` lằng nhằng hoặc các hàm tổng hợp tính toán khối lượng lớn. Đóng vai trò là "Single source of truth" (Nguồn chân lý duy nhất) cho các tính năng xem báo cáo và danh sách động. 
-
-**Cách áp dụng vào dự án:**
-- Thay vì Express backend phải gọi nhiều bảng (như `Order` join với `BookedTour`) rồi tự Reduce/Map trong Array Node.js để tính tổng, hệ thống đã tạo sẵn view `vw_BookingDetails` để tự động tính `LineTotal`.
-- Tính năng tính tỷ lệ lấp đầy được thiết lập bằng View `vw_TourOccupancy`. Backend khi hiển thị danh sách Tour ra trang chủ chỉ cần query `SELECT * FROM vw_TourOccupancy` để biết ngay Tour nào đang `Active` và còn trống bao nhiêu ghế.
-
-### 2.2. Stored Procedures (Quy trình chuẩn hóa mọi thao tác Ghi/Đọc phức tạp)
-
-**Vai trò:** Gom nhóm toàn bộ SQL Logic (Business logic cập nhật, xóa, thêm mới) tạo thành 1 API nội bộ dưới Database.
-
-**Cách áp dụng vào dự án:**
-- **100% các hành động Write** trong Model Node.js bắt buộc phải qua SP. 
-- *Ví dụ ở `src/models/booking.model.js`:*
-  ```javascript
-  // Model backend chỉ cần gọi SP với tham số, mọi thứ để SP lo.
-  const [rows] = await db.query('CALL sp_CreateBooking(?, ?, ?, ?, ?)', [userId, tourId, ...]);
-  ```
-- Việc gọi SP như `sp_SafeDeleteTour` hay `sp_CreateBooking` giúp API phía Backend cực ngắn, đồng thời ngăn chặn các lỗi bất đồng bộ do phải query nhiều lần từ code JS.
-
-### 2.3. Transactions (Bảo toàn tính nguyên vẹn dữ liệu)
-
-**Vai trò:** Đảm bảo nguyên lý Atomicity (Tất cả hoặc không gì cả), giữ dữ liệu không bị hỏng gãy (ví dụ: Tạo được Order nhưng lỗi BookedTour dẫn tới đơn hàng mồ côi).
-
-**Cách áp dụng vào dự án:**
-- Transactions được **nhúng mặc định** vào bên trong chính các Stored Procedures liên quan tới dữ liệu quan trọng, Frontend/Backend không cần gọi lệnh mở kết nối Transaction nào cả.
-- *Cách thức bảo vệ:* Code SP (trong `Transaction.sql`) thiết lập bắt lỗi ngay trên đầu. 
-  ```sql
-  DECLARE EXIT HANDLER FOR SQLEXCEPTION 
-  BEGIN 
-    ROLLBACK; 
-    RESIGNAL; 
-  END;
-  ```
-- Nếu có đoạn code nào trong SP cập nhật bị vướng lỗi (Ví dụ: `BookedTour` không insert được vì hết chỗ do Trigger báo), `SQLEXCEPTION` sẽ được ném, Transaction tự động `ROLLBACK` và khôi phục những bước trước đó, hủy bỏ lệnh `INSERT` của `Order`.
-
-### 2.4. Triggers (Phản hồi tự động, Validation ngầm & Ràng buộc)
-
-**Vai trò:** Đóng vai trò là "Người gác cổng" hoạt động ngầm (Backend Node.js hoàn toàn không biết cấu trúc bên dưới của nó), bảo vệ dữ liệu ở mức độ database engine.
-
-**Cách áp dụng vào dự án:**
-1. **Kiểm tra nghiệp vụ ngầm (Slot Check):** 
-   - Có 1 trigger `before_bookedtour_insert_check_slots`. Khi SP cố gắng chèn booking mới, Trigger này ngầm chạy. Nếu `Quantity` đăng ký lớn hơn lượng chỗ còn lại của Tour, trigger gọi `SIGNAL SQLSTATE '45000'` và chối bỏ lệnh Insert (từ đó kích hoạt Transaction Rollback ở SP).
-2. **Chống Hard Delete (Bảo vệ dữ liệu cứng):**
-   - Các Backend dev khi viết Query lỡ tay viết raw SQL: `DELETE FROM Tour WHERE TourID = 1`. Để chống lại điều này, dự án áp dụng soft delete (chỉ đổi thời gian DeletedAt).
-   - Trigger `before_tour_delete_check_booking` hoặc `before_category_delete` lập tức báo lỗi đỏ chặn đứng mọi lệnh Hard Delete nếu tour này đang nằm ở các Booking chưa hoàn thành.
-3. **Audit Logging (Bám vết tự động):**
-   - Triggers `after_tour_insert`, `after_tour_update` được bắt vào các bảng quan trọng (như bám vào bảng Tour). Bất kỳ khi nào một Admin thao tác chỉnh sửa giá hay trạng thái, Trigger sẽ âm thầm tự động tạo lưu 1 log vào cấu trúc hệ thống bảng `AuditLog`.
+1. [Tổng quan dự án](#1-tổng-quan-dự-án)
+2. [Công nghệ sử dụng](#2-công-nghệ-sử-dụng)
+3. [Cấu trúc dự án](#3-cấu-trúc-dự-án)
+4. [Kiến trúc cơ sở dữ liệu](#4-kiến-trúc-cơ-sở-dữ-liệu)
+5. [Luồng hoạt động hệ thống](#5-luồng-hoạt-động-hệ-thống)
+6. [Các thành phần Database Object](#6-các-thành-phần-database-object)
+   - [Views (Bảng ảo)](#61-views-bảng-ảo)
+   - [Stored Procedures (Thủ tục lưu trữ)](#62-stored-procedures-thủ-tục-lưu-trữ)
+   - [Transactions (Giao dịch nguyên tử)](#63-transactions-giao-dịch-nguyên-tử)
+   - [Triggers (Bộ kích hoạt tự động)](#64-triggers-bộ-kích-hoạt-tự-động)
+   - [Events (Sự kiện định kỳ)](#65-events-sự-kiện-định-kỳ)
+7. [Danh mục API](#7-danh-mục-api)
+8. [Hướng dẫn cài đặt](#8-hướng-dẫn-cài-đặt)
 
 ---
 
-## Tổng kết
+## 1. Tổng quan dự án
 
-Bằng việc kết hợp nhuần nhuyễn **View - Stored Procedure - Transaction - Trigger**, hệ thống Backend Node.js của dự án đã trở nên rất "mỏng" (Thin Controller / Thin Model), tốc độ xử lý nhanh, bảo mật cấu trúc gốc vững vàng và bất khả xâm phạm. Bất kỳ lỗi logic nghiệp vụ nào từ ứng dụng API cũng không thể chạm và làm vỡ tới hệ thống kho dữ liệu trung tâm này.
+**Skyline Tours** là nền tảng đặt tour du lịch thương mại cho phép khách hàng duyệt, lọc và đặt các gói du lịch trực tuyến, đồng thời cung cấp cho quản trị viên một bảng điều khiển đầy đủ để phân tích dữ liệu, quản lý đơn hàng và giám sát hệ thống.
+
+Dự án áp dụng triết lý kiến trúc **"Database-Centric"** — toàn bộ logic nghiệp vụ quan trọng (thao tác ghi, kiểm tra hợp lệ, đảm bảo tính toàn vẹn) được xử lý trực tiếp trong MySQL thông qua Stored Procedure và Trigger, giữ cho tầng Node.js mỏng nhẹ, nhanh và an toàn.
+
+---
+
+## 2. Công nghệ sử dụng
+
+| Tầng | Công nghệ |
+|---|---|
+| **Runtime** | Node.js |
+| **Framework** | Express.js |
+| **Cơ sở dữ liệu** | MySQL 8.0 (InnoDB) |
+| **Frontend** | Vanilla HTML / CSS / JavaScript |
+| **Truy vấn CSDL** | Raw SQL thông qua `mysql2` — không dùng ORM |
+| **Kiến trúc** | Monolith MVC — Database-Centric |
+
+---
+
+## 3. Cấu trúc dự án
+
+```
+/
+├── src/
+│   ├── app.js                  # Cấu hình Express & middleware
+│   ├── server.js               # Điểm khởi động HTTP server
+│   ├── config/
+│   │   └── db.js               # MySQL connection pool
+│   ├── controllers/            # Xử lý request (tầng mỏng)
+│   ├── services/               # Logic nghiệp vụ & kiểm tra dữ liệu
+│   ├── models/                 # Truy cập dữ liệu (gọi SP & View)
+│   ├── routes/                 # Định nghĩa route Express
+│   └── utils/                  # Tiện ích: response, logger, errors
+│
+├── views/
+│   └── pages/
+│       ├── home.html           # Trang danh sách tour cho khách hàng
+│       └── admin/
+│           └── dashboard.html  # Bảng điều khiển quản trị (Command Center)
+│
+├── public/
+│   ├── css/                    # Stylesheet
+│   └── js/                     # Script frontend
+│
+├── table.sql                   # Lược đồ cơ sở dữ liệu (DDL)
+├── view.sql                    # Định nghĩa các View
+├── trigger.sql                 # Định nghĩa các Trigger
+├── SP.sql                      # Stored Procedure phân tích dữ liệu
+├── Transaction.sql             # Stored Procedure giao dịch
+├── Event.sql                   # Event định kỳ (production — 24 giờ)
+├── Event_test.sql              # Event kiểm thử (1 phút)
+├── Event_restore.sql           # Khôi phục Event production sau khi test
+└── .env                        # Biến môi trường
+```
+
+---
+
+## 4. Kiến trúc cơ sở dữ liệu
+
+Schema được tổ chức xung quanh ba miền tính năng chính:
+
+| Miền tính năng | Các bảng liên quan |
+|---|---|
+| **Danh mục Tour** | `Tour`, `Tour_Image`, `Category` |
+| **Quản lý Đặt hàng** | `BookedTour`, `Order` |
+| **Phân quyền Quản trị** | `Admin`, `Role`, `AdminRoles`, `Permission`, `RolePermission`, `AuditLog` |
+| **Khách hàng** | `User` |
+
+**Chiến lược khóa chính:** Tất cả PK được quản lý thủ công bằng `INT` thông qua pattern `SELECT COALESCE(MAX(ID), 0) + 1 FROM Table FOR UPDATE` bên trong transaction (ngoại trừ `AuditLog.LogID` dùng `AUTO_INCREMENT`).
+
+**Quy ước mã trạng thái:**
+
+| Thực thể | Cột | Giá trị |
+|---|---|---|
+| `Order` | `OrderStatus` | `0` = Đã hủy, `1` = Chờ xử lý, `2` = Hoàn thành |
+| `Tour` | `TourStatus` | `0` = Ẩn, `1` = Đang bán |
+| `Category` | `CategoryStatus` | `0` = Ẩn, `1` = Đang hoạt động |
+
+---
+
+## 5. Luồng hoạt động hệ thống
+
+Hệ thống tuân thủ kiến trúc phân tầng chặt chẽ. Dưới đây là toàn bộ vòng đời của một yêu cầu **"Đặt Tour"**:
+
+```
+Trình duyệt (Vanilla JS)
+  │  POST /api/bookings  { tourId, quantity, paymentMethod }
+  ▼
+Route → Controller
+  │  Lấy tham số, gọi Service
+  ▼
+Tầng Service
+  │  Kiểm tra tour tồn tại & còn chỗ (truy vấn Model)
+  ▼
+Tầng Model
+  │  CALL sp_CreateBooking(userId, tourId, qty, method, note)
+  ▼
+MySQL — Stored Procedure (sp_CreateBooking)
+  │  START TRANSACTION
+  │    1. Lấy giá hiện tại: SELECT CostPerPerson FROM Tour
+  │    2. Tạo OrderID mới
+  │    3. INSERT INTO `Order`
+  │    4. INSERT INTO BookedTour ──► Trigger: before_bookedtour_insert_check_slots
+  │                                  (tự động chặn nếu không đủ chỗ)
+  │  COMMIT  (hoặc ROLLBACK nếu có lỗi bất kỳ)
+  │  SELECT 'Đặt tour thành công!', v_OrderID AS OrderID_Created
+  ▼
+Phản hồi ngược về: Model → Service → Controller → Frontend (Toast thông báo)
+```
+
+---
+
+## 6. Các thành phần Database Object
+
+### 6.1 Views (Bảng ảo)
+
+**Vai trò:** View đóng vai trò là **nguồn chân lý duy nhất** cho các thao tác đọc dữ liệu. View che giấu sự phức tạp của các câu `JOIN` nhiều bảng và các hàm tổng hợp, giúp tầng Node.js không cần tự xử lý logic đó trong code JavaScript.
+
+| View | Mục đích | Được dùng bởi |
+|---|---|---|
+| `vw_TourCatalogue` | Tour đang bán kèm số ghế còn lại | Trang chủ khách hàng |
+| `vw_TourOccupancy` | Tỷ lệ lấp đầy từng tour | SP phân tích tồn kho, Catalog |
+| `vw_BookingDetails` | Đơn hàng join chi tiết đặt, tính `LineTotal` | SP doanh thu, Bảng quản lý đơn |
+| `vw_CustomerStats` | Tổng đơn & chi tiêu mỗi khách | SP VIP & Tỷ lệ quay lại |
+| `vw_UserDemographics` | Phân nhóm độ tuổi khách hàng | SP nhân khẩu học |
+| `vw_AdminAccessControl` | Admin → Vai trò → Quyền hạn (phẳng hóa) | Trang quản lý Admin |
+
+**Ví dụ sử dụng trong Node.js:**
+```javascript
+// tour.model.js — đọc từ View thay vì JOIN nhiều bảng thủ công
+const [rows] = await db.query(`
+  SELECT * FROM vw_TourCatalogue WHERE RemainingSeats > 0
+`);
+```
+
+---
+
+### 6.2 Stored Procedures (Thủ tục lưu trữ)
+
+**Toàn bộ thao tác ghi** trong dự án đều bắt buộc phải đi qua Stored Procedure. Tầng Model Node.js **không bao giờ** thực thi trực tiếp câu `INSERT`, `UPDATE`, hay `DELETE` thô — đảm bảo mọi quy tắc nghiệp vụ luôn được áp dụng nhất quán tại tầng CSDL.
+
+#### Nhóm Phân tích (`SP.sql`) — 10 Stored Procedure
+
+| Stored Procedure | Mô tả |
+|---|---|
+| `sp_GetRevenueByDateRange` | Doanh thu theo ngày trong khoảng thời gian |
+| `sp_GetRevenueByCategory` | Doanh thu phân tích theo danh mục tour |
+| `sp_RevenueActualVsExpected` | So sánh doanh thu thực tế vs. kỳ vọng vs. đã mất |
+| `sp_GetTopBestSellingToursByMonth` | Top N tour bán chạy nhất trong tháng |
+| `sp_GetTourOccupancyByName` | Tỷ lệ lấp đầy theo tên tour |
+| `sp_TopCancelledTours` | Top N tour bị hủy nhiều nhất |
+| `sp_HighInventoryTours` | Tour ế — chiếm <30% chỗ trong N ngày tới |
+| `GetTopVIPCustomers` | Top khách VIP theo chi tiêu hoặc số đơn |
+| `GetCustomerDemographicStats` | Thống kê khách theo nhóm tuổi hoặc địa điểm |
+| `GetCustomerRetentionRate` | Tỷ lệ khách quay lại vs. khách một lần |
+
+#### Nhóm Giao dịch (`Transaction.sql`) — 8 Stored Procedure
+
+| Stored Procedure | Mô tả |
+|---|---|
+| `sp_CreateBooking` | Tạo `Order` + `BookedTour`; kích hoạt kiểm tra slot |
+| `sp_UpdateOrderStatus` | Cập nhật trạng thái đơn + ghi AuditLog |
+| `sp_CancelBooking` | Hủy đơn (`OrderStatus = 0`); chặn nếu đã hoàn thành |
+| `sp_CreateTourWithImage` | Tạo tour + hình ảnh trong một transaction |
+| `sp_SafeDeleteTour` | Xóa ảnh trước rồi xóa tour; Trigger chặn nếu còn đơn pending |
+| `sp_CreateAdminWithRole` | Tạo tài khoản Admin + gán vai trò nguyên tử |
+| `sp_ApplyCategoryDiscount` | Giảm giá hàng loạt theo % cho toàn bộ tour trong danh mục |
+| `sp_MergeCategories` | Gộp danh mục: chuyển tất cả tour sang danh mục mới |
+
+---
+
+### 6.3 Transactions (Giao dịch nguyên tử)
+
+**Vai trò:** Đảm bảo nguyên lý **Atomicity** — "tất cả hoặc không có gì". Ngăn ngừa tình trạng dữ liệu bị gãy giữa chừng (ví dụ: tạo được `Order` nhưng `BookedTour` lỗi → đơn hàng mồ côi không có chi tiết).
+
+Mọi Stored Procedure ghi dữ liệu đều sử dụng mẫu bắt lỗi tự động:
+
+```sql
+DECLARE EXIT HANDLER FOR SQLEXCEPTION
+BEGIN
+    ROLLBACK;   -- Hoàn tác toàn bộ thay đổi trong transaction này
+    RESIGNAL;   -- Ném lỗi ra ngoài để frontend nhận được thông báo lỗi
+END;
+
+START TRANSACTION;
+  -- ... các thao tác ghi ...
+COMMIT;
+```
+
+**Ví dụ thực tế:** Khi `sp_CreateBooking` chạy và Trigger kiểm tra slot phát hiện không đủ chỗ, nó ném `SIGNAL SQLSTATE '45000'`. `SQLEXCEPTION` được kích hoạt → `ROLLBACK` tự động hủy bỏ lệnh `INSERT INTO Order` đã chạy trước đó → không để lại đơn hàng mồ côi nào trong CSDL.
+
+---
+
+### 6.4 Triggers (Bộ kích hoạt tự động)
+
+**Vai trò:** Hoạt động như những **"người gác cổng vô hình"** — tự động kích hoạt khi có sự kiện DML xảy ra mà tầng ứng dụng không cần biết đến sự tồn tại của chúng. Bảo vệ toàn vẹn dữ liệu ở mức engine CSDL.
+
+| Trigger | Sự kiện | Hành vi |
+|---|---|---|
+| `before_bookedtour_insert_check_slots` | `BEFORE INSERT` trên `BookedTour` | **Chặn** insert nếu số lượng vượt quá chỗ còn lại |
+| `before_bookedtour_update_protected` | `BEFORE UPDATE` trên `BookedTour` | **Chặn** sửa chi tiết đơn đã hoàn thành |
+| `before_tour_delete_check_booking` | `BEFORE DELETE` trên `Tour` | **Chặn** hard delete — dùng `sp_SafeDeleteTour` |
+| `before_category_delete` | `BEFORE DELETE` trên `Category` | **Chặn** hard delete danh mục |
+| `before_user_delete` | `BEFORE DELETE` trên `User` | **Chặn** hard delete tài khoản khách |
+| `after_tour_insert` | `AFTER INSERT` trên `Tour` | Tự động ghi AuditLog khi tạo tour mới |
+| `after_tour_update` | `AFTER UPDATE` trên `Tour` | Ghi log thay đổi tên, giá hoặc trạng thái tour |
+| `after_tour_delete` | `AFTER DELETE` trên `Tour` | Tự động ghi AuditLog khi xóa tour |
+| `after_category_status_update` | `AFTER UPDATE` trên `Category` | Cascade thay đổi trạng thái xuống toàn bộ tour con |
+| `after_category_parent_status_update` | `AFTER UPDATE` trên `Category` | Cascade trạng thái xuống danh mục con |
+
+---
+
+### 6.5 Events (Sự kiện định kỳ)
+
+**Vai trò:** MySQL Events cung cấp khả năng **tự động hóa nền** theo lịch trình định sẵn, thay thế hoàn toàn cho cron job hoặc scheduler bên ngoài.
+
+| Event | Tần suất | Hành động |
+|---|---|---|
+| `evt_CancelUnpaidOrders` | Mỗi 1 giờ | Hủy tất cả đơn hàng `Pending` quá 24 giờ chưa thanh toán, ghi AuditLog |
+| `evt_CancelUnpaidOrders_TEST` | Mỗi 30 giây | Phiên bản kiểm thử — hủy đơn quá **1 phút** |
+
+**Kích hoạt bộ lập lịch MySQL:**
+```sql
+SET GLOBAL event_scheduler = ON;
+-- Kiểm tra trạng thái:
+SHOW VARIABLES LIKE 'event_scheduler';
+```
+
+**Quy trình kiểm thử & khôi phục:**
+```powershell
+# Chạy event kiểm thử (hủy sau 1 phút)
+Get-Content Event_test.sql | & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -p DBMS
+
+# Khôi phục event production (hủy sau 24 giờ) sau khi test xong
+Get-Content Event_restore.sql | & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -p DBMS
+```
+
+---
+
+## 7. Danh mục API
+
+### Xác thực
+| Phương thức | Endpoint | Mô tả |
+|---|---|---|
+| `POST` | `/api/auth/login` | Đăng nhập khách hàng |
+| `POST` | `/api/auth/register` | Đăng ký tài khoản khách hàng |
+| `POST` | `/api/auth/admin-login` | Đăng nhập cổng quản trị |
+
+### Tour
+| Phương thức | Endpoint | Mô tả |
+|---|---|---|
+| `GET` | `/api/tours` | Danh sách tour đang bán (qua `vw_TourCatalogue`) |
+| `POST` | `/api/tours` | Tạo tour + hình ảnh (`sp_CreateTourWithImage`) |
+| `DELETE` | `/api/tours/:id` | Xóa tour an toàn (`sp_SafeDeleteTour`) |
+
+### Đặt hàng & Đơn hàng
+| Phương thức | Endpoint | Mô tả |
+|---|---|---|
+| `POST` | `/api/bookings` | Tạo đặt tour (`sp_CreateBooking`) |
+| `GET` | `/api/bookings/orders` | Danh sách 20 đơn hàng mới nhất |
+| `PATCH` | `/api/bookings/:id/status` | Cập nhật trạng thái đơn (`sp_UpdateOrderStatus`) |
+| `PATCH` | `/api/bookings/:id/cancel` | Hủy đơn hàng (`sp_CancelBooking`) |
+
+### Danh mục
+| Phương thức | Endpoint | Mô tả |
+|---|---|---|
+| `GET` | `/api/categories` | Danh sách danh mục đang hoạt động |
+| `PATCH` | `/api/categories/:id/discount` | Giảm giá hàng loạt (`sp_ApplyCategoryDiscount`) |
+| `POST` | `/api/categories/merge` | Gộp danh mục (`sp_MergeCategories`) |
+
+### Quản trị viên
+| Phương thức | Endpoint | Mô tả |
+|---|---|---|
+| `GET` | `/api/admin/list` | Danh sách 10 Admin mới nhất (qua `vw_AdminAccessControl`) |
+| `POST` | `/api/admin/create-admin-role` | Tạo Admin với vai trò (`sp_CreateAdminWithRole`) |
+| `GET` | `/api/admin/audit-logs` | Xem nhật ký hệ thống |
+
+### Phân tích (10 Stored Procedure)
+| Phương thức | Endpoint | Stored Procedure |
+|---|---|---|
+| `GET` | `/api/analytics/revenue` | `sp_GetRevenueByDateRange` |
+| `GET` | `/api/analytics/revenue/category` | `sp_GetRevenueByCategory` |
+| `GET` | `/api/analytics/revenue/actual-vs-expected` | `sp_RevenueActualVsExpected` |
+| `GET` | `/api/analytics/tours/best-selling` | `sp_GetTopBestSellingToursByMonth` |
+| `GET` | `/api/analytics/tours/occupancy` | `sp_GetTourOccupancyByName` |
+| `GET` | `/api/analytics/tours/cancelled` | `sp_TopCancelledTours` |
+| `GET` | `/api/analytics/tours/high-inventory` | `sp_HighInventoryTours` |
+| `GET` | `/api/analytics/customers/vip` | `GetTopVIPCustomers` |
+| `GET` | `/api/analytics/customers/demographics` | `GetCustomerDemographicStats` |
+| `GET` | `/api/analytics/customers/retention` | `GetCustomerRetentionRate` |
+
+---
+
+## 8. Hướng dẫn cài đặt
+
+### Yêu cầu hệ thống
+
+- Node.js v18 trở lên
+- MySQL 8.0
+
+### Các bước thiết lập
+
+**1. Cài đặt các dependency:**
+```bash
+npm install
+```
+
+**2. Cấu hình biến môi trường:**
+```bash
+cp .env.example .env
+# Chỉnh sửa .env với thông tin kết nối database của bạn
+```
+
+Nội dung file `.env`:
+```env
+PORT=3000
+NODE_ENV=development
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=DBMS
+```
+
+**3. Khởi tạo cơ sở dữ liệu (chạy theo thứ tự):**
+```sql
+-- Trong MySQL Workbench hoặc CLI:
+source table.sql         -- Tạo các bảng
+source view.sql          -- Tạo các View
+source trigger.sql       -- Tạo các Trigger
+source SP.sql            -- Tạo SP phân tích
+source Transaction.sql   -- Tạo SP giao dịch
+source Event.sql         -- Tạo Event định kỳ
+```
+
+**4. Khởi động server:**
+```bash
+npm start
+```
+
+**5. Truy cập ứng dụng:**
+- Trang khách hàng: [http://localhost:3000](http://localhost:3000)
+- Bảng điều khiển Admin: [http://localhost:3000/admin/dashboard](http://localhost:3000/admin/dashboard)
+
+---
+
+> **Lưu ý:** Bảng điều khiển Admin yêu cầu thông tin đăng nhập hợp lệ đã có trong bảng `Admin`. Sử dụng `sp_CreateAdminWithRole` hoặc chèn bản ghi seed trực tiếp để tạo tài khoản Admin đầu tiên.
