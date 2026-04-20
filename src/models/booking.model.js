@@ -5,7 +5,7 @@ async function createBooking(userId, tourId, quantity, paymentMethod, note) {
     'CALL sp_CreateBooking(?, ?, ?, ?, ?)',
     [userId, tourId, quantity, paymentMethod, note]
   );
-  return rows[0];
+  return rows[0][0];
 }
 
 async function findTourById(tourId) {
@@ -17,12 +17,12 @@ async function findTourById(tourId) {
 
 async function updateOrderStatus(orderId, newStatus, adminId) {
   const [rows] = await db.query('CALL sp_UpdateOrderStatus(?, ?, ?)', [orderId, newStatus, adminId]);
-  return rows[0];
+  return rows[0][0];
 }
 
 async function cancelBooking(orderId, adminId, reason) {
   const [rows] = await db.query('CALL sp_CancelBooking(?, ?, ?)', [orderId, adminId || null, reason || '']);
-  return rows[0];
+  return rows[0][0];
 }
 
 module.exports = { createBooking, findTourById, updateOrderStatus, cancelBooking };

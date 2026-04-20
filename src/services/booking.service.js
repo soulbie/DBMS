@@ -10,7 +10,7 @@ async function createBooking(userId, tourId, quantity, paymentMethod, note) {
   }
 
   const result = await bookingModel.createBooking(userId, tourId, quantity, paymentMethod, note);
-  logger.info(`Booking created: orderId=${result.OrderID}, userId=${userId}`);
+  logger.info(`Booking created: orderId=${result.OrderID_Created}, userId=${userId}`);
   return result;
 }
 
