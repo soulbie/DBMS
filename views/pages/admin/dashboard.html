@@ -7,8 +7,124 @@
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/pages/admin.css">
     <link rel="stylesheet" href="/css/components/toast.css">
+    <style>
+        /* Admin Login Gate */
+        #admin-gate {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 15, 30, 0.96);
+            backdrop-filter: blur(20px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .gate-card {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+            animation: fadeIn 0.4s ease;
+        }
+        .gate-logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--primary-dark);
+            margin-bottom: 0.5rem;
+        }
+        .gate-subtitle { color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem; }
+        .gate-error { color: #EF4444; font-size: 0.9rem; margin-top: 0.5rem; min-height: 1.2rem; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Admin info bar */
+        #admin-info-bar {
+            background: var(--primary-dark);
+            color: white;
+            padding: 0.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+        #admin-info-bar button {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        #admin-info-bar button:hover { background: rgba(255,255,255,0.25); }
+
+        /* Status badges for orders */
+        .status-badge {
+            padding: 0.25rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            display: inline-block;
+        }
+        .status-pending   { background: rgba(245,158,11,0.15); color: #D97706; }
+        .status-completed { background: rgba(16,185,129,0.15); color: #059669; }
+        .status-cancelled { background: rgba(239,68,68,0.15);  color: #DC2626; }
+
+        /* Section header with refresh */
+        .section-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .btn-refresh {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.4rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+        .btn-refresh:hover { opacity: 0.85; }
+        .table-scroll { overflow-x: auto; }
+    </style>
 </head>
 <body>
+
+    <!-- ═══════════════════════════════════ -->
+    <!-- ADMIN LOGIN GATE                   -->
+    <!-- ═══════════════════════════════════ -->
+    <div id="admin-gate">
+        <div class="gate-card">
+            <div class="gate-logo">🛡 Skyline Admin</div>
+            <p class="gate-subtitle">Restricted Area — Administrator Login Required</p>
+            <form id="admin-gate-form">
+                <div class="form-group">
+                    <label>Admin Email</label>
+                    <input type="email" name="email" class="form-control" required placeholder="admin@skyline.vn">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" name="password" class="form-control" required placeholder="••••••••">
+                </div>
+                <div class="gate-error" id="gate-error"></div>
+                <button type="submit" class="btn-primary" style="width:100%;margin-top:1rem;" id="gate-btn">
+                    Enter Admin Portal
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin info bar (shown after login) -->
+    <div id="admin-info-bar" style="display:none;">
+        <span id="admin-name-bar">👤 Admin</span>
+        <button onclick="adminLogout()">Logout</button>
+    </div>
+
     <div class="admin-layout">
         <!-- Sidebar -->
         <aside class="admin-sidebar">
@@ -28,7 +144,7 @@
             <!-- Tabs Navigation -->
             <div class="tabs-header animate-fade-in" style="animation-delay: 0.1s;">
                 <button class="tab-btn active" onclick="switchTab('analytics')">Analytics (SP)</button>
-                <button class="tab-btn" onclick="switchTab('tours')">Tours & Categories</button>
+                <button class="tab-btn" onclick="switchTab('tours')">Tours &amp; Categories</button>
                 <button class="tab-btn" onclick="switchTab('bookings')">Orders</button>
                 <button class="tab-btn" onclick="switchTab('admin')">System</button>
                 <button class="tab-btn" onclick="switchTab('audit')">Audit Logs</button>
@@ -289,10 +405,40 @@
                 </div>
             </div>
 
-            <!-- ═══════════════════════════ -->
-            <!-- Tab: Bookings               -->
-            <!-- ═══════════════════════════ -->
+            <!-- ═══════════════════════════════════════════ -->
+            <!-- Tab: Bookings — Orders List + Actions       -->
+            <!-- ═══════════════════════════════════════════ -->
             <div id="tab-bookings" class="tab-content">
+                <!-- Order Ledger Table -->
+                <div class="glass-card data-section animate-fade-in" style="margin-bottom: 2rem;">
+                    <div class="section-toolbar">
+                        <h2>📋 Order Ledger</h2>
+                        <button class="btn-refresh" onclick="fetchAndRenderOrders()">🔄 Refresh</button>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="table-glass" id="ordersTable">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Date</th>
+                                    <th>User ID</th>
+                                    <th>Tour ID</th>
+                                    <th>Qty</th>
+                                    <th>Price/Person</th>
+                                    <th>Line Total</th>
+                                    <th>Payment</th>
+                                    <th>Status</th>
+                                    <th>Note</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersTableBody">
+                                <tr><td colspan="10" style="text-align:center;color:var(--text-muted)">Loading orders...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Actions -->
                 <div class="form-grid-2">
                     <div class="glass-card">
                         <h3>Update Order Status</h3>
@@ -319,10 +465,34 @@
                 </div>
             </div>
 
-            <!-- ═══════════════════════════ -->
-            <!-- Tab: Admin                  -->
-            <!-- ═══════════════════════════ -->
+            <!-- ═══════════════════════════════════════════ -->
+            <!-- Tab: Admin — Admin List + Create Form       -->
+            <!-- ═══════════════════════════════════════════ -->
             <div id="tab-admin" class="tab-content">
+                <!-- Admin List Table -->
+                <div class="glass-card data-section animate-fade-in" style="margin-bottom: 2rem;">
+                    <div class="section-toolbar">
+                        <h2>👥 Admin Directory</h2>
+                        <button class="btn-refresh" onclick="fetchAndRenderAdmins()">🔄 Refresh</button>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="table-glass" id="adminsTable">
+                            <thead>
+                                <tr>
+                                    <th>Admin ID</th>
+                                    <th>Full Name</th>
+                                    <th>Role</th>
+                                    <th>Permission</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminsTableBody">
+                                <tr><td colspan="4" style="text-align:center;color:var(--text-muted)">Loading admin list...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Create Admin form -->
                 <div class="glass-card" style="max-width: 500px;">
                     <h3>Provision Admin Account</h3>
                     <form id="formCreateAdmin" class="action-form" style="margin-top: 1rem;">
@@ -340,11 +510,10 @@
             <!-- ═══════════════════════════ -->
             <div id="tab-audit" class="tab-content">
                 <div class="glass-card data-section animate-fade-in">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="section-toolbar">
                         <h2>System Audit Logs</h2>
-                        <button class="btn-primary" onclick="fetchAndRenderAuditLogs()" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Refresh Logs</button>
+                        <button class="btn-refresh" onclick="fetchAndRenderAuditLogs()">🔄 Refresh Logs</button>
                     </div>
-                    
                     <table class="table-glass" id="auditLogsTable" style="margin-top: 1.5rem;">
                         <thead>
                             <tr>

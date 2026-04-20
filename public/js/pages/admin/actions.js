@@ -7,6 +7,11 @@ window.switchTab = function(tabId) {
   // Update Content
   document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
   document.getElementById('tab-' + tabId).classList.add('active');
+
+  // Auto-refresh data for data-heavy tabs
+  if (tabId === 'bookings' && window.fetchAndRenderOrders) window.fetchAndRenderOrders();
+  if (tabId === 'admin'    && window.fetchAndRenderAdmins) window.fetchAndRenderAdmins();
+  if (tabId === 'audit'    && window.fetchAndRenderAuditLogs) window.fetchAndRenderAuditLogs();
 };
 
 // Generic Form Handler logic

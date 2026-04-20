@@ -24,3 +24,8 @@ exports.cancel = async (req, res) => {
   const result = await bookingService.cancelBooking(req.params.id, adminId, reason);
   return ok(res, result, 'Hủy tour thành công!');
 };
+
+exports.listOrders = async (req, res) => {
+  const orders = await bookingService.getAllOrders();
+  return ok(res, orders, 'Orders fetched successfully');
+};

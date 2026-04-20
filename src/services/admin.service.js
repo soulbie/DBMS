@@ -15,4 +15,8 @@ async function getAuditLogs(limit) {
   return await adminModel.getAuditLogs(limit);
 }
 
-module.exports = { getAdminProfile, createAdmin, getAuditLogs };
+async function getAllAdmins() {
+  return await adminModel.getAllAdmins();
+}
+
+module.exports = { getAdminProfile, createAdmin, getAllAdmins, getAuditLogs };

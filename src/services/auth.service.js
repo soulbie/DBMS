@@ -24,4 +24,14 @@ async function register(payload) {
   return newUser;
 }
 
-module.exports = { login, register };
+async function adminLogin(email, password) {
+  const adminModel = require('../models/admin.model');
+  const admin = await adminModel.findAdminByEmail(email);
+  if (!admin) throw new AppError('Email Admin không tồn tại', 404);
+  if (admin.Password !== password) throw new AppError('Mật khẩu không chính xác', 401);
+  if (admin.Status !== 1) throw new AppError('Tài khoản Admin đã bị vô hiệu hóa', 403);
+  const { Password, ...adminPayload } = admin;
+  return { ...adminPayload, role: 'admin' };
+}
+
+module.exports = { login, register, adminLogin };

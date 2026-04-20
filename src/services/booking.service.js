@@ -26,4 +26,8 @@ async function cancelBooking(orderId, adminId, reason) {
   return result;
 }
 
-module.exports = { createBooking, updateStatus, cancelBooking };
+async function getAllOrders() {
+  return await bookingModel.getAllOrders();
+}
+
+module.exports = { createBooking, getAllOrders, updateStatus, cancelBooking };

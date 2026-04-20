@@ -18,3 +18,8 @@ exports.getAuditLogs = async (req, res) => {
   const logs = await adminService.getAuditLogs(limit);
   return ok(res, logs, 'Audit logs fetched successfully');
 };
+
+exports.listAllAdmins = async (req, res) => {
+  const admins = await adminService.getAllAdmins();
+  return ok(res, admins, 'Admin list fetched successfully');
+};

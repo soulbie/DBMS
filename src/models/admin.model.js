@@ -5,9 +5,19 @@ async function getAdminById(adminId) {
   return rows[0] ?? null;
 }
 
+async function findAdminByEmail(email) {
+  const [rows] = await db.query('SELECT * FROM Admin WHERE Email = ?', [email]);
+  return rows[0] ?? null;
+}
+
+async function getAllAdmins() {
+  const [rows] = await db.query('SELECT AdminID, FullName, RoleName, PermissionType FROM vw_AdminAccessControl ORDER BY AdminID DESC LIMIT 10');
+  return rows;
+}
+
 async function createAdminWithRole(fullName, email, password, roleId) {
   const [rows] = await db.query('CALL sp_CreateAdminWithRole(?, ?, ?, ?)', [fullName, email, password, roleId]);
-  return rows[0];
+  return rows[0][0];
 }
 
 async function getAuditLogs(limit = 100) {
@@ -20,4 +30,4 @@ async function getAuditLogs(limit = 100) {
   return rows;
 }
 
-module.exports = { getAdminById, createAdminWithRole, getAuditLogs };
+module.exports = { getAdminById, findAdminByEmail, getAllAdmins, createAdminWithRole, getAuditLogs };
