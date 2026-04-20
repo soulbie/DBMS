@@ -10,7 +10,7 @@ async function createBooking(userId, tourId, quantity, paymentMethod, note) {
 
 async function findTourById(tourId) {
   const [rows] = await db.query(
-    'SELECT * FROM Tour WHERE TourID = ? AND DeletedAt IS NULL', [tourId]
+    'SELECT * FROM Tour WHERE TourID = ? AND TourStatus = 1', [tourId]
   );
   return rows[0] ?? null;
 }

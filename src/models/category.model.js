@@ -1,7 +1,7 @@
 const db = require('../config/db');
 
 async function getAllCategories() {
-  const [rows] = await db.query('SELECT * FROM Category WHERE DeletedAt IS NULL AND CategoryStatus = 1');
+  const [rows] = await db.query('SELECT * FROM Category WHERE CategoryStatus = 1');
   return rows;
 }
 

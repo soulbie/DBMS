@@ -1,7 +1,7 @@
 const db = require('../config/db');
 
 async function getAdminById(adminId) {
-  const [rows] = await db.query('SELECT * FROM Admin WHERE AdminID = ? AND DeletedAt IS NULL', [adminId]);
+  const [rows] = await db.query('SELECT * FROM Admin WHERE AdminID = ? AND Status = 1', [adminId]);
   return rows[0] ?? null;
 }
 
