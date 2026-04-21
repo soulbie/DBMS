@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Status | Skyline Tours</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <style>
+        body {
+            background: linear-gradient(rgba(13, 142, 255, 0.05), rgba(13, 142, 255, 0.1));
+            min-height: 100vh;
+            padding-top: 100px;
+        }
+
+        header.top-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 1.5rem 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.8);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .top-nav h2 {
+            font-size: 1.5rem;
+            color: var(--primary-dark);
+        }
+
+        .nav-links a {
+            color: var(--text-main);
+            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .status-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.5rem 1.2rem;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-pending { background: rgba(245,158,11,0.15); color: #D97706; }
+        .status-completed { background: rgba(16,185,129,0.15); color: #059669; }
+        .status-cancelled { background: rgba(239,68,68,0.15);  color: #DC2626; }
+
+        .order-meta {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            padding-bottom: 2rem;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meta-item span { color: var(--text-muted); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.3rem;}
+        .meta-item strong { color: var(--text-main); font-size: 1.1rem; }
+
+        .tour-summary {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+            background: rgba(13, 142, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 12px;
+        }
+
+        .tour-thumbnail {
+            width: 120px;
+            height: 120px;
+            border-radius: 8px;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .tour-details h3 { margin-bottom: 0.5rem; font-size: 1.4rem; color: var(--primary-dark); }
+        .tour-details p { color: var(--text-muted); margin-bottom: 0.2rem; }
+
+        .total-box {
+            margin-top: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .btn-home {
+            display: inline-block;
+            background: var(--primary-color);
+            color: white;
+            padding: 0.8rem 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-home:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(13,142,255,0.3); }
+
+        .loading-shimmer {
+            height: 200px;
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 12px;
+        }
+        
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+    </style>
+</head>
+<body>
+
+    <header class="top-nav">
+        <h2>Skyline.</h2>
+        <nav class="nav-links">
+            <a href="/">← Back to Home</a>
+        </nav>
+    </header>
+
+    <main class="status-container">
+        
+        <div class="glass-card" id="order-container">
+            <div class="loading-shimmer"></div>
+        </div>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderId = urlParams.get('id');
+            const container = document.getElementById('order-container');
+
+            if (!orderId) {
+                container.innerHTML = `<h3 style="color: #EF4444; text-align: center;">Order ID is missing.</h3><div style="text-align:center;margin-top:2rem"><a href="/" class="btn-home">Return Home</a></div>`;
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/bookings/${orderId}`);
+                const responseData = await res.json();
+                
+                if (!responseData.success) throw new Error(responseData.message || "Failed to fetch order");
+                
+                const data = responseData.data;
+                const statusLower = (data.StatusLabel || 'Pending').toLowerCase();
+                let statusClass = 'status-pending';
+                if (statusLower === 'completed') statusClass = 'status-completed';
+                if (statusLower === 'cancelled') statusClass = 'status-cancelled';
+
+                // Formatting
+                const priceFmt = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(data.PriceAtBooking);
+                const totalFmt = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(data.LineTotal);
+                const dateFmt = new Date(data.OrderDate).toLocaleString('vi-VN');
+                const departFmt = data.DepartureDate ? new Date(data.DepartureDate).toLocaleDateString('vi-VN') : 'TBA';
+                const imgSrc = data.TourThumbnail || 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&q=80&w=1000';
+
+                let noteHtml = '';
+                if (data.Note) {
+                    noteHtml = `<div style="margin-bottom: 2rem; padding: 1rem; background: rgba(0,0,0,0.03); border-radius: 8px; font-size: 0.9rem; color: var(--text-muted); border-left: 4px solid var(--accent-color);">
+                        <strong>Note:</strong> ${data.Note}
+                    </div>`;
+                }
+
+                container.innerHTML = `
+                    <div style="text-align: center;">
+                        <span class="status-badge ${statusClass}">${data.StatusLabel}</span>
+                        <h2 style="font-size: 2.5rem; font-weight: 800; color: var(--primary-dark); margin-bottom: 0.5rem;">Order #${data.OrderID}</h2>
+                        <p style="color: var(--text-muted); margin-bottom: 2.5rem;">Thank you for choosing Skyline Tours.</p>
+                    </div>
+
+                    <div class="order-meta">
+                        <div class="meta-item">
+                            <span>Order Date</span>
+                            <strong>${dateFmt}</strong>
+                        </div>
+                        <div class="meta-item">
+                            <span>Payment Method</span>
+                            <strong>${data.PaymentMethod || 'CASH'}</strong>
+                        </div>
+                    </div>
+
+                    ${noteHtml}
+
+                    <div class="tour-summary">
+                        <div class="tour-thumbnail" style="background-image: url('${imgSrc}')"></div>
+                        <div class="tour-details">
+                            <h3>${data.TourName}</h3>
+                            <p><strong>Departure:</strong> ${departFmt}</p>
+                            <p><strong>Duration:</strong> ${data.Duration || 'TBA'}</p>
+                            <p><strong>Quantity:</strong> ${data.Quantity} tickets x ${priceFmt}</p>
+                        </div>
+                    </div>
+
+                    <div class="total-box">
+                        <span style="font-size: 1.2rem; font-weight: 600; color: var(--text-muted);">Total Paid</span>
+                        <span style="font-size: 2.2rem; font-weight: 800; color: var(--primary-color);">${totalFmt}</span>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 3rem;">
+                        <a href="/" class="btn-home">Explore More Tours</a>
+                    </div>
+                `;
+
+            } catch (err) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem;">
+                        <span style="font-size: 3rem; margin-bottom: 1rem; display: block;">🔍</span>
+                        <h3 style="color: #EF4444; margin-bottom: 1rem;">Oops! Couldn't find your order.</h3>
+                        <p style="color: var(--text-muted);">${err.message}</p>
+                        <div style="margin-top: 2rem;">
+                            <a href="/" class="btn-home">Return Home</a>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

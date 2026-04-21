@@ -29,3 +29,8 @@ exports.listOrders = async (req, res) => {
   const orders = await bookingService.getAllOrders();
   return ok(res, orders, 'Orders fetched successfully');
 };
+
+exports.getOrderInfo = async (req, res) => {
+  const orderInfo = await bookingService.getOrderDetails(req.params.id);
+  return ok(res, orderInfo, 'Order information fetched successfully');
+};

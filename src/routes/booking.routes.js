@@ -3,6 +3,7 @@ const ctrl = require('../controllers/booking.controller');
 const asyncHandler = require('../utils/asyncHandler');
 
 router.get('/orders', asyncHandler(ctrl.listOrders));
+router.get('/:id', asyncHandler(ctrl.getOrderInfo));
 router.post('/', asyncHandler(ctrl.create));
 router.patch('/:id/status', asyncHandler(ctrl.updateStatus));
 router.patch('/:id/cancel', asyncHandler(ctrl.cancel));

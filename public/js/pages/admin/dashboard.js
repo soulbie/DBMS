@@ -59,10 +59,27 @@
     gate.style.display = 'none';
     infoBar.style.display = 'flex';
     nameBar.textContent = `👤 ${admin.FullName || admin.Email} (ID: ${admin.AdminID})`;
-    // After login, fetch data for loaded tabs
-    fetchAndRenderOrders();
-    fetchAndRenderAdmins();
-    fetchAndRenderAuditLogs();
+    
+    // Check roles
+    const roles = admin.roles || [];
+    const isSalesManager = roles.includes('Sales Manager');
+    const isTourManager  = roles.includes('Tour Manager');
+    const isCustomerSupport = roles.includes('Customer Support');
+    
+    // Auto click appropriate tab based on role
+    // Default handles super admin switching naturally because they have all access
+    // We avoid clicking via element.click() to ensure we don't duplicate events if not needed.
+    // Instead we can simulate a click on the correct button.
+    setTimeout(() => {
+      if (isTourManager && !roles.includes('Super Admin')) {
+        document.querySelector('.tab-btn[onclick="switchTab(\'tours\')"]').click();
+      } else if (isSalesManager && !roles.includes('Super Admin')) {
+        document.querySelector('.tab-btn[onclick="switchTab(\'bookings\')"]').click();
+      } else {
+        // Super Admin or Customer Support -> stays on default 'analytics' tab
+        document.querySelector('.tab-btn.active').click(); 
+      }
+    }, 100);
   }
 
   window.adminLogout = function() {

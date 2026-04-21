@@ -30,8 +30,11 @@ async function adminLogin(email, password) {
   if (!admin) throw new AppError('Email Admin không tồn tại', 404);
   if (admin.Password !== password) throw new AppError('Mật khẩu không chính xác', 401);
   if (admin.Status !== 1) throw new AppError('Tài khoản Admin đã bị vô hiệu hóa', 403);
+  
+  const roles = await adminModel.getAdminRoles(admin.AdminID);
+  
   const { Password, ...adminPayload } = admin;
-  return { ...adminPayload, role: 'admin' };
+  return { ...adminPayload, roles };
 }
 
 module.exports = { login, register, adminLogin };

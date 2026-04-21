@@ -45,4 +45,24 @@ async function getAllOrders() {
   return rows;
 }
 
-module.exports = { createBooking, findTourById, getAllOrders, updateOrderStatus, cancelBooking };
+async function getOrderById(orderId) {
+  const [rows] = await db.query(`
+    SELECT 
+      o.OrderID, o.OrderDate, o.OrderStatus, o.PaymentMethod, o.Note,
+      t.Title AS TourName, t.TourThumbnail, t.DepartureDate, t.Duration,
+      bd.Quantity, bd.PriceAtBooking, (bd.Quantity * bd.PriceAtBooking) AS LineTotal,
+      CASE o.OrderStatus 
+        WHEN 0 THEN 'Cancelled'
+        WHEN 1 THEN 'Pending'
+        WHEN 2 THEN 'Completed'
+        ELSE 'Unknown'
+      END AS StatusLabel
+    FROM \`Order\` o
+    JOIN BookedTour bd ON o.OrderID = bd.OrderID
+    JOIN Tour t ON bd.TourID = t.TourID
+    WHERE o.OrderID = ?
+  `, [orderId]);
+  return rows[0] ?? null;
+}
+
+module.exports = { createBooking, findTourById, getAllOrders, getOrderById, updateOrderStatus, cancelBooking };

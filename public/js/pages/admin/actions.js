@@ -1,5 +1,28 @@
 // Handle Tab Switching
 window.switchTab = function(tabId) {
+  // ──────────────────── RBAC Check for Tabs ────────────────────
+  const sessionStr = localStorage.getItem('adminSession');
+  const session = sessionStr ? JSON.parse(sessionStr) : null;
+  const roles = session && session.roles ? session.roles : [];
+  
+  const allowedAccess = {
+      'analytics': ['Super Admin', 'Customer Support'],
+      'tours': ['Super Admin', 'Tour Manager', 'Customer Support'],
+      'bookings': ['Super Admin', 'Sales Manager', 'Customer Support'],
+      'admin': ['Super Admin'],
+      'audit': ['Super Admin']
+  };
+
+  const allowedRoles = allowedAccess[tabId] || [];
+  const hasAccess = roles.length === 0 || roles.some(r => allowedRoles.includes(r));
+
+  if (!hasAccess) {
+      window.toast && window.toast.show("Bạn không có quyền truy cập", "error");
+      alert("Bạn không có quyền truy cập");
+      return;
+  }
+  // ─────────────────────────────────────────────────────────────
+
   // Update Buttons
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
   event.target.classList.add('active');
@@ -21,6 +44,31 @@ const handleForm = (formId, actionPath, method, payloadBuilder) => {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    // ──────────────────── RBAC Check for Forms ────────────────────
+    const sessionStr = localStorage.getItem('adminSession');
+    const session = sessionStr ? JSON.parse(sessionStr) : null;
+    const roles = session && session.roles ? session.roles : [];
+    
+    const isSuperAdmin = roles.includes('Super Admin');
+    const isTourManager = roles.includes('Tour Manager');
+    const isSalesManager = roles.includes('Sales Manager');
+
+    let canExecute = isSuperAdmin;
+    
+    if (formId.includes('Tour') || formId.includes('Discount') || formId.includes('Merge')) {
+        canExecute = canExecute || isTourManager;
+    } else if (formId.includes('Status') || formId.includes('CancelOrder')) {
+        canExecute = canExecute || isSalesManager;
+    }
+
+    if (!canExecute && roles.length > 0) {
+        window.toast && window.toast.show("Bạn không có quyền truy cập", "error");
+        alert("Bạn không có quyền truy cập");
+        return;
+    }
+    // ─────────────────────────────────────────────────────────────
+
     const btn = form.querySelector('button[type="submit"]');
     const originalText = btn.innerText;
     btn.innerText = 'Processing...';

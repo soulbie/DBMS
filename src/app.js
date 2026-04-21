@@ -16,6 +16,7 @@ app.use('/api', require('./routes'));
 
 // Page routes wrapper
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, '../views/pages/home.html')));
+app.get('/order-status', (req, res) => res.sendFile(path.join(__dirname, '../views/pages/order-status.html')));
 app.get('/admin/dashboard', (req, res) => res.sendFile(path.join(__dirname, '../views/pages/admin/dashboard.html')));
 
 // Error handling middleware

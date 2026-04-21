@@ -45,9 +45,7 @@ BEGIN
         AND b.OrderDate >= p_StartDate
         AND b.OrderDate < DATE_ADD(p_EndDate, INTERVAL 1 DAY)
     WHERE 
-        p_CategoryName IS NULL
-        OR p_CategoryName = ''
-        OR c.Name LIKE CONCAT('%', p_CategoryName, '%')
+        c.Name LIKE CONCAT('%', p_CategoryName, '%')
     GROUP BY c.CategoryID, c.Name
     ORDER BY TotalRevenue DESC;
 END $$
@@ -212,7 +210,7 @@ CALL GetCustomerDemographicStats('LOCATION', 2);
 -- 10. Tỷ lệ khách hàng quay lại
 DROP PROCEDURE IF EXISTS GetCustomerRetentionRate $$
 CREATE PROCEDURE GetCustomerRetentionRate (
-    IN p_order_status INT -- (Lưu ý: vw_CustomerStats mặc định chỉ tính đơn Status=2, nên tham số này có thể bỏ qua trong thực tế, nhưng tôi giữ lại cấu trúc cho bạn)
+    IN p_order_status INT 
 )
 BEGIN
     SELECT

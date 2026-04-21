@@ -390,7 +390,8 @@
                 if (json.success) {
                     alert('Đặt Tour thành công!');
                     closeModal('booking-modal');
-                    loadTours(); // Refresh tours to update seats
+                    // Chuyển hướng tới trang trạng thái và truyền OrderID_Created
+                    window.location.href = '/order-status?id=' + json.data.OrderID_Created;
                 } else {
                     alert(json.message);
                 }

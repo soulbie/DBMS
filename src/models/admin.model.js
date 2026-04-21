@@ -30,4 +30,9 @@ async function getAuditLogs(limit = 100) {
   return rows;
 }
 
-module.exports = { getAdminById, findAdminByEmail, getAllAdmins, createAdminWithRole, getAuditLogs };
+async function getAdminRoles(adminId) {
+  const [rows] = await db.query('SELECT RoleName FROM vw_AdminAccessControl WHERE AdminID = ?', [adminId]);
+  return Array.from(new Set(rows.map(row => row.RoleName)));
+}
+
+module.exports = { getAdminById, findAdminByEmail, getAllAdmins, createAdminWithRole, getAuditLogs, getAdminRoles };

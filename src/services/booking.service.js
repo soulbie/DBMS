@@ -30,4 +30,10 @@ async function getAllOrders() {
   return await bookingModel.getAllOrders();
 }
 
-module.exports = { createBooking, getAllOrders, updateStatus, cancelBooking };
+async function getOrderDetails(orderId) {
+  const order = await bookingModel.getOrderById(orderId);
+  if (!order) throw new AppError('Không tìm thấy đơn hàng', 404);
+  return order;
+}
+
+module.exports = { createBooking, getAllOrders, getOrderDetails, updateStatus, cancelBooking };
