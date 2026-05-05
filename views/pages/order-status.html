@@ -78,6 +78,26 @@
         .status-completed { background: rgba(16,185,129,0.15); color: #059669; }
         .status-cancelled { background: rgba(239,68,68,0.15);  color: #DC2626; }
 
+        .payment-countdown {
+            margin: 0 auto 2rem;
+            max-width: 480px;
+            padding: 1rem 1.25rem;
+            background: #fff5f5;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            color: #b91c1c;
+            font-weight: 600;
+            text-align: center;
+            font-size: 1rem;
+        }
+        .payment-countdown .time {
+            font-size: 1.6rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            display: block;
+            margin-top: 0.25rem;
+        }
+
         .order-meta {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -166,6 +186,38 @@
     </main>
 
     <script>
+        function startPaymentCountdown(orderId, seconds) {
+            const display = document.getElementById('payment-countdown-time');
+            const box = document.getElementById('payment-countdown');
+            if (!display) return;
+            let remaining = seconds;
+            const render = () => {
+                const m = String(Math.floor(remaining / 60)).padStart(2, '0');
+                const s = String(remaining % 60).padStart(2, '0');
+                display.textContent = `${m}:${s}`;
+            };
+            render();
+            const timer = setInterval(async () => {
+                remaining--;
+                if (remaining <= 0) {
+                    clearInterval(timer);
+                    try {
+                        await fetch(`/api/bookings/${orderId}/cancel`, { method: 'PATCH' });
+                    } catch (e) { /* ignore: server-side cancel may have failed, UI still reflects timeout */ }
+                    if (box) box.remove();
+                    const badge = document.getElementById('status-badge');
+                    if (badge) {
+                        badge.textContent = 'Cancelled';
+                        badge.classList.remove('status-pending');
+                        badge.classList.add('status-cancelled');
+                    }
+                    alert('Hết thời gian thanh toán. Đơn đã bị hủy.');
+                    return;
+                }
+                render();
+            }, 1000);
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const orderId = urlParams.get('id');
@@ -202,12 +254,22 @@
                     </div>`;
                 }
 
+                const isPending = statusLower === 'pending';
+                const countdownHtml = isPending ? `
+                    <div class="payment-countdown" id="payment-countdown">
+                        ⏱ Vui lòng hoàn tất thanh toán trong:
+                        <span class="time" id="payment-countdown-time">01:00</span>
+                    </div>
+                ` : '';
+
                 container.innerHTML = `
                     <div style="text-align: center;">
-                        <span class="status-badge ${statusClass}">${data.StatusLabel}</span>
+                        <span class="status-badge ${statusClass}" id="status-badge">${data.StatusLabel}</span>
                         <h2 style="font-size: 2.5rem; font-weight: 800; color: var(--primary-dark); margin-bottom: 0.5rem;">Order #${data.OrderID}</h2>
                         <p style="color: var(--text-muted); margin-bottom: 2.5rem;">Thank you for choosing Skyline Tours.</p>
                     </div>
+
+                    ${countdownHtml}
 
                     <div class="order-meta">
                         <div class="meta-item">
@@ -241,6 +303,8 @@
                         <a href="/" class="btn-home">Explore More Tours</a>
                     </div>
                 `;
+
+                if (isPending) startPaymentCountdown(orderId, 60);
 
             } catch (err) {
                 container.innerHTML = `
