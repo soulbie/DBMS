@@ -230,6 +230,69 @@
     </div>
 
     <script>
+        // --- PERFORMANCE PROFILER (Buffer Demo) ---
+        const originalFetch = window.fetch;
+        window.fetch = async function(...args) {
+            const t0 = performance.now();
+            const res = await originalFetch.apply(this, args);
+            
+            // Chỉ bắt các request API
+            const url = typeof args[0] === 'string' ? args[0] : args[0].url;
+            if (url.includes('/api/')) {
+                // Clone response để không ảnh hưởng luồng chính
+                res.clone().json().then(() => {
+                    const t1 = performance.now();
+                    const timeMs = (t1 - t0).toFixed(2);
+                    showPerformanceToast(url, timeMs);
+                }).catch(() => {});
+            }
+            return res;
+        };
+
+        function showPerformanceToast(path, timeMs) {
+            let container = document.getElementById('perf-toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'perf-toast-container';
+                Object.assign(container.style, {
+                    position: 'fixed', bottom: '20px', right: '20px', zIndex: '9999',
+                    display: 'flex', flexDirection: 'column', gap: '8px', pointerEvents: 'none'
+                });
+                document.body.appendChild(container);
+            }
+
+            const isHit = timeMs < 150; // Một cú gọi DB thật tốn ~600ms. Dưới 150ms chắc chắn là HIT từ Buffer.
+            
+            const toast = document.createElement('div');
+            Object.assign(toast.style, {
+                background: '#161b22', border: `1px solid ${isHit ? 'rgba(63,185,80,0.5)' : 'rgba(248,81,73,0.5)'}`,
+                color: '#e6edf3', padding: '10px 14px', borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.2)', fontFamily: 'system-ui, sans-serif',
+                fontSize: '12px', display: 'flex', alignItems: 'center', gap: '10px',
+                opacity: '0', transform: 'translateX(20px)', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            });
+
+            toast.innerHTML = `
+                <div style="font-weight:600; color:${isHit ? '#3fb950' : '#f85149'}">${isHit ? '⚡ HIT' : '🐌 MISS'}</div>
+                <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px; color:#8b949e">${path}</div>
+                <div style="font-family:monospace; font-weight:700; font-size:14px; color:${isHit ? '#3fb950' : '#f85149'}">${timeMs}ms</div>
+            `;
+
+            container.appendChild(toast);
+            
+            requestAnimationFrame(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateX(0)';
+            });
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(20px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+        // ------------------------------------------
+
         // Utilities
         function openModal(id) { document.getElementById(id).classList.add('active'); }
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }

@@ -1,8 +1,17 @@
-const db = require('../config/db');
+const db     = require('../config/db');
+const buffer = require('../utils/queryBuffer');
+
+const TTL_USER = 30_000;
 
 async function findUserByEmail(email) {
+  const key    = `user:email:${email}`;
+  const cached = buffer.get(key);
+  if (cached) return cached;
+
   const [rows] = await db.query('SELECT * FROM User WHERE Email = ?', [email]);
-  return rows[0] ?? null;
+  const result = rows[0] ?? null;
+  if (result) buffer.set(key, result, TTL_USER);
+  return result;
 }
 
 async function createUser(fullName, email, password, phone = '') {
@@ -13,7 +22,9 @@ async function createUser(fullName, email, password, phone = '') {
     'INSERT INTO User (UserID, FullName, Email, Password, PhoneNumber, Status) VALUES (?, ?, ?, ?, ?, 1)',
     [nextId, fullName, email, password, phone]
   );
-  
+
+  // Invalidate user cache sau khi tạo mới
+  buffer.invalidate('user:');
   return { UserID: nextId, FullName: fullName, Email: email };
 }
 
