@@ -67,3 +67,5 @@ JOIN AdminRoles ar ON a.AdminID = ar.AdminID
 JOIN Role r ON ar.RoleID = r.RoleID
 JOIN RolePermission rp ON r.RoleID = rp.RoleID
 JOIN Permission p ON rp.PermissionID = p.PermissionID;
+
+SELECT @@innodb_buffer_pool_size / 1024 / 1024 / 1024 AS size_gb;

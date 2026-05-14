@@ -98,6 +98,23 @@
             margin-top: 0.25rem;
         }
 
+        .btn-pay {
+            display: block;
+            margin: 0 auto 2rem;
+            padding: 0.9rem 2.5rem;
+            background: #059669;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        .btn-pay:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(5,150,105,0.3); }
+        .btn-pay:disabled { background: #94a3b8; cursor: not-allowed; }
+
         .order-meta {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -186,6 +203,15 @@
     </main>
 
     <script>
+        let paymentCountdownTimer = null;
+
+        function stopPaymentCountdown() {
+            if (paymentCountdownTimer) {
+                clearInterval(paymentCountdownTimer);
+                paymentCountdownTimer = null;
+            }
+        }
+
         function startPaymentCountdown(orderId, seconds) {
             const display = document.getElementById('payment-countdown-time');
             const box = document.getElementById('payment-countdown');
@@ -197,14 +223,16 @@
                 display.textContent = `${m}:${s}`;
             };
             render();
-            const timer = setInterval(async () => {
+            paymentCountdownTimer = setInterval(async () => {
                 remaining--;
                 if (remaining <= 0) {
-                    clearInterval(timer);
+                    stopPaymentCountdown();
                     try {
                         await fetch(`/api/bookings/${orderId}/cancel`, { method: 'PATCH' });
                     } catch (e) { /* ignore: server-side cancel may have failed, UI still reflects timeout */ }
                     if (box) box.remove();
+                    const payBtn = document.getElementById('btn-pay');
+                    if (payBtn) payBtn.remove();
                     const badge = document.getElementById('status-badge');
                     if (badge) {
                         badge.textContent = 'Cancelled';
@@ -216,6 +244,35 @@
                 }
                 render();
             }, 1000);
+        }
+
+        async function payNow(orderId) {
+            const btn = document.getElementById('btn-pay');
+            if (btn) { btn.disabled = true; btn.textContent = 'Đang xử lý...'; }
+            try {
+                const res = await fetch(`/api/bookings/${orderId}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 2 })
+                });
+                const json = await res.json();
+                if (!json.success) throw new Error(json.message || 'Thanh toán thất bại');
+
+                stopPaymentCountdown();
+                const box = document.getElementById('payment-countdown');
+                if (box) box.remove();
+                if (btn) btn.remove();
+                const badge = document.getElementById('status-badge');
+                if (badge) {
+                    badge.textContent = 'Completed';
+                    badge.classList.remove('status-pending');
+                    badge.classList.add('status-completed');
+                }
+                alert('Thanh toán thành công!');
+            } catch (err) {
+                alert(err.message || 'Có lỗi khi thanh toán');
+                if (btn) { btn.disabled = false; btn.textContent = '💳 Thanh toán ngay'; }
+            }
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -260,6 +317,7 @@
                         ⏱ Vui lòng hoàn tất thanh toán trong:
                         <span class="time" id="payment-countdown-time">01:00</span>
                     </div>
+                    <button type="button" class="btn-pay" id="btn-pay" onclick="payNow(${data.OrderID})">💳 Thanh toán ngay</button>
                 ` : '';
 
                 container.innerHTML = `
