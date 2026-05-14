@@ -19,10 +19,11 @@ exports.register = async (req, res) => {
   return created(res, result, 'Đăng ký thành công');
 };
 exports.adminLogin = async (req, res) => {
-  const { email, password } = req.body;
+  let { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ success: false, message: 'Vui lòng điền đủ email và mật khẩu' });
   }
+  email = email.trim();
   const result = await authService.adminLogin(email, password);
   return ok(res, result, 'Đăng nhập Admin thành công');
 };
