@@ -1,5 +1,5 @@
 -- Dat tour
-use dbms;
+use dbmss;
 DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_CreateBooking $$

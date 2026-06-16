@@ -15,7 +15,7 @@
 |---|---|
 | Database | MySQL (InnoDB engine) |
 | Charset | `utf8mb4` |
-| Schema name | `DBMS` |
+| Schema name | `dbmss` |
 | ORM / Query builder | None — raw SQL via stored procedures & views |
 | Table naming | PascalCase (`BookedTour`, `AuditLog`) |
 | Column naming | PascalCase (`OrderDate`, `CostPerPerson`) |

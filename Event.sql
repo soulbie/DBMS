@@ -1,6 +1,6 @@
-use dbms;
+use dbmss;
 SET GLOBAL event_scheduler = ON;
-USE DBMS; -- Đảm bảo sử dụng đúng database của bạn
+USE dbmss; -- Đảm bảo sử dụng đúng database của bạn
 
 DELIMITER $$
 

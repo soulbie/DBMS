@@ -1,4 +1,4 @@
-use dbms;
+use dbmss;
 
 DELIMITER $$
 
@@ -80,23 +80,27 @@ CALL sp_RevenueActualVsExpected('2026-04-01', '2026-04-30');
 -- 4. Top Tour bán chạy nhất
 DROP PROCEDURE IF EXISTS sp_GetTopBestSellingToursByMonth $$
 CREATE PROCEDURE sp_GetTopBestSellingToursByMonth (
-    IN p_Year INT,
+    IN p_Year  INT,
     IN p_Month INT,
     IN p_Limit INT
 )
 BEGIN
+    -- Tính đầu/cuối tháng một lần, không đặt hàm trên cột
+    SET @month_start = MAKEDATE(p_Year, 1) + INTERVAL (p_Month - 1) MONTH;
+    SET @month_end   = @month_start + INTERVAL 1 MONTH;
+ 
     SELECT
         t.TourID,
-        t.Title AS TourName,
+        t.Title                   AS TourName,
         COUNT(DISTINCT b.OrderID) AS TotalOrders,
-        SUM(b.Quantity) AS TotalCustomers,
-        SUM(b.LineTotal) AS TotalRevenue
+        SUM(b.Quantity)           AS TotalCustomers,
+        SUM(b.LineTotal)          AS TotalRevenue
     FROM Tour t
     JOIN vw_BookingDetails b ON t.TourID = b.TourID
-    WHERE 
+    WHERE
         b.OrderStatus = 2
-        AND YEAR(b.OrderDate) = p_Year
-        AND MONTH(b.OrderDate) = p_Month
+        AND b.OrderDate >= @month_start   -- ✅ range trên cột gốc → dùng idx_order_status_date
+        AND b.OrderDate <  @month_end
     GROUP BY t.TourID, t.Title
     ORDER BY TotalCustomers DESC
     LIMIT p_Limit;
@@ -104,20 +108,20 @@ END $$
 CALL sp_GetTopBestSellingToursByMonth(2026, 4, 5);
 
 -- 5. Tỷ lệ lấp đầy
--- (Cực kỳ ngắn vì vw_TourOccupancy đã lo hết việc tính toán % và số ghế dư)
 DROP PROCEDURE IF EXISTS sp_GetTourOccupancyByName $$
 CREATE PROCEDURE sp_GetTourOccupancyByName(
     IN p_TourTitle VARCHAR(255)
 )
 BEGIN
     SELECT
-        TourID,
-        TourName AS Title,
-        MaxParticipants,
-        SoldSeats,
-        OccupancyRate
-    FROM vw_TourOccupancy
-    WHERE TourName LIKE CONCAT('%', p_TourTitle, '%');
+        v.TourID,
+        v.TourName        AS Title,
+        v.MaxParticipants,
+        v.SoldSeats,
+        v.OccupancyRate
+    FROM vw_TourOccupancy v
+    JOIN Tour t ON v.TourID = t.TourID          -- join bảng gốc vì FULLTEXT không dùng được trên VIEW
+    WHERE MATCH(t.Title) AGAINST (p_TourTitle IN BOOLEAN MODE); 
 END $$
 CALL sp_GetTourOccupancyByName('Đà Lạt');
 

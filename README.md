@@ -255,10 +255,10 @@ SHOW VARIABLES LIKE 'event_scheduler';
 **Quy trình kiểm thử & khôi phục:**
 ```powershell
 # Chạy event kiểm thử (hủy sau 1 phút)
-Get-Content Event_test.sql | & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -p DBMS
+Get-Content Event_test.sql | & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -p -D dbmss
 
 # Khôi phục event production (hủy sau 24 giờ) sau khi test xong
-Get-Content Event_restore.sql | & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -p DBMS
+Get-Content Event_restore.sql | & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -p -D dbmss
 ```
 
 ---
@@ -345,7 +345,7 @@ DB_HOST=localhost
 DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=your_password
-DB_NAME=DBMS
+DB_NAME=dbmss
 ```
 
 **3. Khởi tạo cơ sở dữ liệu (chạy theo thứ tự):**

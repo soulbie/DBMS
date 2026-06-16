@@ -4,7 +4,7 @@
 -- Sau khi test xong, chạy phần "Restore Production Event" ở dưới
 -- ============================================================
 
-USE DBMS;
+USE dbmss;
 SET GLOBAL event_scheduler = ON;
 
 -- Xóa event cũ (production) tạm thời

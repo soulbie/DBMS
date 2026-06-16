@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS DBMS;
-USE DBMS;
+CREATE DATABASE IF NOT EXISTS dbmss;
+USE dbmss;
 
 -- 1. Category (Danh mục, tự tham chiếu)
 CREATE TABLE Category (

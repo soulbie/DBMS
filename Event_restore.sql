@@ -1,5 +1,5 @@
 -- Chạy file này sau khi test xong để restore event production
-USE DBMS;
+USE dbmss;
 DROP EVENT IF EXISTS evt_CancelUnpaidOrders_TEST;
 DROP EVENT IF EXISTS evt_CancelUnpaidOrders;
 
